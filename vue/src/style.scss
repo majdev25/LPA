@@ -1,0 +1,71 @@
+@use "sass:map";
+
+// 1. Define custom colors
+$custom-colors: (
+  "primary": #ff6600,
+  "gray": #676d7c,
+);
+
+// 2. Merge custom colors into Bootstrap theme colors
+$theme-colors: map.merge(
+  (
+    "primary": #0d6efd,
+    "secondary": #6c757d,
+    "success": #198754,
+    "info": #0dcaf0,
+    "warning": #ffc107,
+    "danger": #dc3545,
+    "light": #f8f9fa,
+    "dark": #212529,
+  ),
+  $custom-colors
+);
+
+// 3. Import Bootstrap with colors only
+@use "bootstrap" with (
+  $primary: #ff6600,
+  $theme-colors: $theme-colors
+);
+
+// 4. Set body font manually (because $body-font-family cannot be overridden)
+body {
+  font-family: "Inter", sans-serif;
+}
+
+@each $name, $color in $theme-colors {
+  .hover-bg-#{$name} {
+    transition: all 0.3s;
+    &:hover {
+      background-color: $color !important;
+    }
+  }
+}
+
+.text-tight {
+  letter-spacing: -0.02em;
+}
+
+.cursor-pointer {
+  cursor: pointer;
+}
+
+.text-sm {
+  font-size: 0.85rem !important; // 12px
+}
+
+.text-xs {
+  font-size: 0.75rem !important; // 10px
+}
+
+._badge {
+  padding: 2px 8px;
+  border-radius: 20px;
+}
+
+.fit-content {
+  width: fit-content;
+}
+
+hr {
+  margin: 0;
+}
