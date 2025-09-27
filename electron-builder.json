@@ -1,0 +1,24 @@
+{
+  "appId": "com.example.lpa",
+  "productName": "LPA",
+  "directories": {
+    "buildResources": "build",
+    "output": "dist_electron"
+  },
+  "files": [
+    "dist/**",
+    "vue/dist/**",
+    "electron/main/**",
+    "electron/preload/**",
+    "package.json"
+  ],
+  "mac": {
+    "target": ["dmg", "zip"]
+  },
+  "win": {
+    "target": ["nsis", "zip"]
+  },
+  "linux": {
+    "target": ["AppImage", "deb"]
+  }
+}

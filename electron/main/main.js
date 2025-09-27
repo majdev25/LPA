@@ -14,12 +14,11 @@ function createWindow() {
   });
 
   if (process.env.NODE_ENV === "development") {
-    // Load Vue dev server in development
     win.loadURL("http://localhost:5173");
     win.webContents.openDevTools();
   } else {
-    // Load built Vue files in production
-    win.loadFile(path.join(__dirname, "../vue/dist/index.html"));
+    win.loadFile(path.join(__dirname, "../../vue/dist/index.html"));
+    win.webContents.openDevTools();
   }
 }
 
