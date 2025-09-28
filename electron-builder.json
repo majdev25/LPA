@@ -13,12 +13,15 @@
     "package.json"
   ],
   "mac": {
-    "target": ["dmg", "zip"]
+    "target": ["dmg", "zip"],
+    "icon": "assets/logo.icns"
   },
   "win": {
-    "target": ["nsis", "zip"]
+    "target": ["nsis", "zip"],
+    "icon": "assets/logo.ico"
   },
   "linux": {
-    "target": ["AppImage", "deb"]
+    "target": ["AppImage", "deb"],
+    "icon": "assets/logo.png"
   }
 }
