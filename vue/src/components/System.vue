@@ -4,6 +4,8 @@ import * as d3 from "d3";
 import { GraphRenderer } from "./SystemComponents/SystemGraphRenderer";
 import State from "./ProcesComponents/State.vue";
 import Event from "./ProcesComponents/Event.vue";
+import procesImg from "./SystemComponents/proces.png";
+import procesActiveImg from "./SystemComponents/proces.active.png";
 
 const d3Container = ref(null);
 const selectedStateId = ref(null);
@@ -27,7 +29,6 @@ const props = defineProps({
   },
 });
 const graph = reactive({ ...props._graph });
-const proceses = reactive([...props._proceses]);
 
 const mode = ref({ addState: true, addEvent: false });
 
@@ -263,7 +264,8 @@ onMounted(() => {
             }"
             @click="toggleAddState"
           >
-            <FontAwesomeIcon :icon="['fa', 'circle-notch']" class="me-1" />
+          <img v-if="!mode.addState" :src="procesImg" width="20px" class="me-1"></img>
+          <img v-else :src="procesActiveImg" width="20px" class="me-1"></img>
             Dodaj stanje
           </div>
           <div
