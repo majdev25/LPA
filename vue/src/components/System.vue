@@ -1,7 +1,7 @@
 <script setup>
 import { onMounted, ref, reactive, onUnmounted } from "vue";
 import * as d3 from "d3";
-import { GraphRenderer } from "./ProcesComponents/ProcesGraphRenderer";
+import { GraphRenderer } from "./SystemComponents/SystemGraphRenderer";
 import State from "./ProcesComponents/State.vue";
 import Event from "./ProcesComponents/Event.vue";
 
@@ -253,9 +253,7 @@ onMounted(() => {
       style="height: fit-content; z-index: 10; flex-shrink: 0"
     >
       <div>
-        <div class="fs-sm fw-bold ms-2">
-          Proces {{ proceses.find((x) => x.id == graph.id).label }}
-        </div>
+        <div class="fs-sm fw-bold ms-2">Sistem</div>
         <div class="d-flex align-items-center">
           <div
             class="d-flex align-items-center me-2 cursor-pointer fs-6 text-tight text-sm _badge hover-bg-light"
