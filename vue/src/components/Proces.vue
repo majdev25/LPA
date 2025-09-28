@@ -3,7 +3,7 @@ import { onMounted, ref, reactive, onUnmounted } from "vue";
 import * as d3 from "d3";
 import { GraphRenderer } from "./GraphRenderer";
 import State from "./State.vue";
-import Dogodek from "./Dogodek.vue";
+import Event from "./Event.vue";
 
 const d3Container = ref(null);
 const selectedStateId = ref(null);
@@ -303,7 +303,7 @@ onMounted(() => {
           @save="updateState"
           @delete="() => deleteState(selectedStateId)"
         />
-        <Dogodek
+        <Event
           v-else-if="selectedEventId != null"
           :event="getEvent(selectedEventId)"
           :proceses="_proceses"
