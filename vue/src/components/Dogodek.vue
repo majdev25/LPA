@@ -4,11 +4,11 @@ import { reactive, watch } from "vue";
 
 // Props
 const props = defineProps({
-  state: {
+  event: {
     type: Object,
     default: () => ({}),
   },
-  procesi: {
+  proceses: {
     type: Array,
     default: () => [],
   }
@@ -18,55 +18,55 @@ const props = defineProps({
 const emit = defineEmits(["save"]);
 
 // Reactive local copy
-const localState = reactive({ ...props.state });
+const localEvent = reactive({ ...props.event });
 
 // watch for prop changes
 watch(
-  () => props.state,
-  (newState) => {
-    Object.assign(localState, newState);
+  () => props.event,
+  (newEvent) => {
+    Object.assign(localEvent, newEvent);
   },
   { deep: true }
 );
 
 watch(
-  () => localState.type,
+  () => localEvent.type,
   (newOther) => {
-    console.log("change")
     updateIzvorPonor();
   },
 );
 
 // Save function
-function saveEdge() {
-  emit("save", { ...localState });
+function saveEvent() {
+  emit("save", { ...localEvent });
 }
 
-function deleteEdge() {
+function deleteEvent() {
   emit("delete");
 }
 
 function updateIzvorPonor() {
-  const found = props.procesi.find(x => x.id == localState.parent_process);
+  const parent_proces = localEvent.parent_proces
+  const found = props.proceses.find(x => x.id == parent_proces);
 
   if (!found) {
     return;
   }
 
-  if (localState.type == "spr") {
-    localState.to_process = found.id;
-  } else if (localState.type == "odd") {
-    localState.from_process = found.id;
-  } else if (localState.type == "lok") {
-    localState.from_process = found.id;
-    localState.to_process = found.id;
+  if (localEvent.type == "spr") {
+    localEvent.to_process = found.id;
+  } else if (localEvent.type == "odd") {
+    localEvent.from_process = found.id;
+  } else if (localEvent.type == "lok") {
+    localEvent.from_process = found.id;
+    localEvent.to_process = found.id;
   }
 }
 </script>
 
 <template>
   <div class="d-flex flex-column justify-content-between w-100 flex-grow-1">
-    <div v-if="props.state" class="d-flex flex-column gap-2 rounded">
+    <div v-if="props.event" class="d-flex flex-column gap-2 rounded">
       <div class="fs-5 fw-bold text-black">
         <FontAwesomeIcon :icon="['fa', 'arrow-right']" /> Dogodek
       </div>
@@ -77,14 +77,14 @@ function updateIzvorPonor() {
         <label class="form-label">Ime dogodka</label>
         <input
           class="form-control"
-          v-model="localState.label"
+          v-model="localEvent.label"
           placeholder="Vnesi ime stanja"
         />
       </div>
 
        <div class="mb-2">
     <label class="form-label">Vrsta dogodka</label>
-    <select class="form-select" v-model="localState.type">
+    <select class="form-select" v-model="localEvent.type">
       <option value="spr">Sprejemni (+)</option>
       <option value="odd">Oddajni (-)</option>
       <option value="lok">Lokalni (#)</option>
@@ -94,15 +94,15 @@ function updateIzvorPonor() {
 
     <div class="mb-2">
       <label class="form-label">Izvorni proces</label>
-    <select class="form-select" v-model="localState.from_process" :disabled="localState.type == 'odd' || localState.type == 'lok'">
-      <option :value="p.id" v-for="p in procesi">{{ p.label }}</option>
+    <select class="form-select" v-model="localEvent.from_process" :disabled="localEvent.type == 'odd' || localEvent.type == 'lok'">
+      <option :value="p.id" v-for="p in proceses">{{ p.label }}</option>
     </select>
     </div>
 
     <div class="mb-2">
       <label class="form-label">Ponorni proces</label>
-    <select class="form-select" v-model="localState.to_process" :disabled="localState.type == 'spr' || localState.type == 'lok'">
-      <option :value="p.id" v-for="p in procesi">{{ p.label }}</option>
+    <select class="form-select" v-model="localEvent.to_process" :disabled="localEvent.type == 'spr' || localEvent.type == 'lok'">
+      <option :value="p.id" v-for="p in proceses">{{ p.label }}</option>
     </select>
     </div>
       
@@ -110,12 +110,12 @@ function updateIzvorPonor() {
     <div class="d-flex gap-2">
       <button
         class="btn btn-primary mt-2 flex-grow-1 text-white"
-        @click="saveEdge"
-        :disabled="JSON.stringify(localState) === JSON.stringify(props.state)"
+        @click="saveEvent"
+        :disabled="JSON.stringify(localEvent) === JSON.stringify(props.event)"
       >
         Shrani
       </button>
-      <button class="btn btn-danger mt-2 fit-content" @click="deleteEdge">
+      <button class="btn btn-danger mt-2 fit-content" @click="deleteEvent">
         <FontAwesomeIcon :icon="['fa', 'trash']" />
       </button>
     </div>

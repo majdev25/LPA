@@ -6,11 +6,11 @@ import State from "./State.vue";
 import Dogodek from "./Dogodek.vue";
 
 const d3Container = ref(null);
-const selectedCircleId = ref(-1);
-const selectedArrowId = ref(-1);
+const selectedStateId = ref(null);
+const selectedEventId = ref(null);
 
 const props = defineProps({
-  _procesi: {
+  _proceses: {
     type: Array,
     default: () => [
       { label: "p0", id: "p0" },
@@ -20,61 +20,61 @@ const props = defineProps({
   _graph: {
     type: Object,
     default: () => ({
-      nodes: [],
-      edges: [],
+      states: [],
+      events: [],
       id: "p0",
     }),
   },
 });
 const graph = reactive({ ...props._graph });
-const procesi = reactive([...props._procesi]);
+const proceses = reactive([...props._proceses]);
 
-const mode = ref({ addCircle: true, addArrow: false });
+const mode = ref({ addState: true, addEvent: false });
 
-let nextCircleId = 0;
-let nextArrowId = 0;
-function genCircleId() {
-  return `s${nextCircleId++}`;
+let nextStateId = 0;
+let nextEventId = 0;
+function genStateId() {
+  return `s${nextStateId++}`;
 }
-function genArrowId() {
-  return `d${nextArrowId++}`;
-}
-
-function getCircle(id) {
-  return graph.nodes.find((c) => c.id === id);
-}
-function getEdge(id) {
-  return graph.edges.find((a) => a.id === id);
+function genEventId() {
+  return `d${nextEventId++}`;
 }
 
-function updateNode(data) {
-  const index = graph.nodes.findIndex((c) => c.id === selectedCircleId.value);
+function getState(id) {
+  return graph.states.find((c) => c.id === id);
+}
+function getEvent(id) {
+  return graph.events.find((a) => a.id === id);
+}
+
+function updateState(data) {
+  const index = graph.states.findIndex((c) => c.id === selectedStateId.value);
   if (index !== -1) {
-    graph.nodes[index] = data;
+    graph.states[index] = data;
   }
   renderer.render();
 }
 
-function deleteNode(id) {
-  const nodeIndex = graph.nodes.findIndex((c) => c.id === id);
-  if (nodeIndex !== -1) {
-    graph.nodes.splice(nodeIndex, 1);
-    // Also remove associated edges
-    graph.edges = graph.edges.filter((e) => e.from !== id && e.to !== id);
-    selectedCircleId.value = -1;
+function deleteState(id) {
+  const stateIndex = graph.states.findIndex((c) => c.id === id);
+  if (stateIndex !== -1) {
+    graph.states.splice(stateIndex, 1);
+    // Also remove associated events
+    graph.events = graph.events.filter((e) => e.from !== id && e.to !== id);
+    selectedStateId.value = -1;
     renderer.render();
   }
 }
 
 function globalClick({ x, y }) {
-  if (mode.value.addCircle) {
-    addCircle(x, y);
+  if (mode.value.addState) {
+    addState(x, y);
   }
 }
 
-function addCircle(x, y) {
-  let id = genCircleId();
-  graph.nodes.push({
+function addState(x, y) {
+  let id = genStateId();
+  graph.states.push({
     id,
     x,
     y,
@@ -83,13 +83,13 @@ function addCircle(x, y) {
     isStart: false,
     parent_proces: graph.id,
   });
-  selectedCircleId.value = id;
+  selectedStateId.value = id;
   renderer.render();
 }
 
-function addArrow(fromId, toId) {
-  const c1 = getCircle(fromId);
-  const c2 = getCircle(toId);
+function addEvent(fromId, toId) {
+  const c1 = getState(fromId);
+  const c2 = getState(toId);
   if (!c1 || !c2) return;
   let ctrl;
   if (fromId === toId) {
@@ -108,8 +108,8 @@ function addArrow(fromId, toId) {
     const oy = my + (curveOffset * dx) / len;
     ctrl = { x: ox, y: oy };
   }
-  let id = genArrowId();
-  graph.edges.push({
+  let id = genEventId();
+  graph.events.push({
     id,
     from: fromId,
     to: toId,
@@ -119,37 +119,39 @@ function addArrow(fromId, toId) {
     from_process: "p0",
     to_process: "p0",
     parent_proces: graph.id,
-    renderArrowName,
+    renderEventName,
   });
   renderer.render();
 }
 
-function renderArrowName(edge) {
+function renderEventName(event) {
   // use edge.type and edge.label directly
-  if (edge.type === "spr") {
-    return "+" + edge.label + "(" + edge.from_process + ")";
-  } else if (edge.type === "odd") {
-    return "-" + edge.label + "(" + edge.to_process + ")";
-  } else if (edge.type === "lok") {
-    return "#" + edge.label;
-  } else if (edge.type === "tra") {
-    return edge.label + "(" + edge.from_process + "," + edge.to_process + ")";
+  if (event.type === "spr") {
+    return "+" + event.label + "(" + event.from_process + ")";
+  } else if (event.type === "odd") {
+    return "-" + event.label + "(" + event.to_process + ")";
+  } else if (event.type === "lok") {
+    return "#" + event.label;
+  } else if (event.type === "tra") {
+    return (
+      event.label + "(" + event.from_process + "," + event.to_process + ")"
+    );
   }
 }
 
-function updateEdge(data) {
-  const index = graph.edges.findIndex((c) => c.id === selectedArrowId.value);
+function updateEvent(data) {
+  const index = graph.events.findIndex((c) => c.id === selectedEventId.value);
   if (index !== -1) {
-    graph.edges[index] = data;
+    graph.events[index] = data;
   }
   renderer.render();
 }
 
-function deleteEdge(id) {
+function deleteEvent(id) {
   console.log(id);
-  const edgeIndex = graph.edges.findIndex((c) => c.id === id);
-  if (edgeIndex !== -1) {
-    graph.edges.splice(edgeIndex, 1);
+  const eventIndex = graph.events.findIndex((c) => c.id === id);
+  if (eventIndex !== -1) {
+    graph.events.splice(eventIndex, 1);
     renderer.render();
   }
 }
@@ -157,39 +159,39 @@ function deleteEdge(id) {
 const renderer = new GraphRenderer();
 
 function clearAll() {
-  mode.value.addCircle = false;
-  mode.value.addArrow = false;
-  selectedArrowId.value = null;
-  selectedCircleId.value = null;
+  mode.value.addState = false;
+  mode.value.addEvent = false;
+  selectedEventId.value = null;
+  selectedStateId.value = null;
   renderer.render();
 }
 
-function toggleAddCircle() {
+function toggleAddState() {
   clearAll();
-  mode.value.addCircle = !mode.value.addCircle;
+  mode.value.addState = !mode.value.addState;
 }
 
-function toggleAddArrow() {
+function toggleAddEvent() {
   clearAll();
-  mode.value.addArrow = !mode.value.addArrow;
+  mode.value.addEvent = !mode.value.addEvent;
 }
 
-function handleCircleClick(event, d) {
+function handleStateClick(event, d) {
   event.stopPropagation();
-  selectedArrowId.value = null;
-  if (selectedCircleId.value === null || !mode.value.addArrow) {
-    selectedCircleId.value = d.id;
-  } else if (mode.value.addArrow) {
-    addArrow(selectedCircleId.value, d.id);
-    selectedCircleId.value = null;
+  selectedEventId.value = null;
+  if (selectedStateId.value === null || !mode.value.addEvent) {
+    selectedStateId.value = d.id;
+  } else if (mode.value.addEvent) {
+    addEvent(selectedStateId.value, d.id);
+    selectedStateId.value = null;
   }
   renderer.render();
 }
 
-function handleArrowClick(event, i) {
+function handleEventClick(event, i) {
   event.stopPropagation();
-  selectedCircleId.value = null;
-  selectedArrowId.value = i;
+  selectedStateId.value = null;
+  selectedEventId.value = i;
   renderer.render();
 }
 
@@ -207,8 +209,8 @@ onMounted(() => {
       if (event.target.tagName === "svg") {
         const [x, y] = d3.pointer(event);
         globalClick({ x, y });
-        selectedCircleId.value = null;
-        selectedArrowId.value = null;
+        selectedStateId.value = null;
+        selectedEventId.value = null;
         renderer.render();
       }
     });
@@ -218,7 +220,7 @@ onMounted(() => {
     svg
       .attr("width", container.clientWidth)
       .attr("height", container.clientHeight);
-    renderer.render(); // optional: re-render nodes/edges to fit
+    renderer.render(); // optional: re-render states/events to fit
   }
 
   window.addEventListener("resize", resizeSvg);
@@ -228,10 +230,10 @@ onMounted(() => {
     svg,
     d3,
     graph,
-    selectedCircleId,
-    selectedArrowId,
-    handleCircleClick,
-    handleArrowClick,
+    selectedStateId,
+    selectedEventId,
+    handleStateClick,
+    handleEventClick,
   });
 
   renderer.render();
@@ -252,16 +254,16 @@ onMounted(() => {
     >
       <div>
         <div class="fs-sm fw-bold ms-2">
-          Proces {{ procesi.find((x) => x.id == graph.id).label }}
+          Proces {{ proceses.find((x) => x.id == graph.id).label }}
         </div>
         <div class="d-flex align-items-center">
           <div
             class="d-flex align-items-center me-2 cursor-pointer fs-6 text-tight text-sm _badge hover-bg-light"
             :class="{
-              'bg-light text-primary': mode.addCircle,
-              'text-gray': !mode.addCircle,
+              'bg-light text-primary': mode.addState,
+              'text-gray': !mode.addState,
             }"
-            @click="toggleAddCircle"
+            @click="toggleAddState"
           >
             <FontAwesomeIcon :icon="['fa', 'circle-notch']" class="me-1" />
             Dodaj stanje
@@ -269,10 +271,10 @@ onMounted(() => {
           <div
             class="d-flex align-items-center me-2 cursor-pointer fs-6 text-tight text-sm _badge hover-bg-light"
             :class="{
-              'bg-light text-primary': mode.addArrow,
-              'text-gray': !mode.addArrow,
+              'bg-light text-primary': mode.addEvent,
+              'text-gray': !mode.addEvent,
             }"
-            @click="toggleAddArrow"
+            @click="toggleAddEvent"
           >
             <FontAwesomeIcon :icon="['fa', 'arrow-right']" class="me-1" />
             Dodaj dogodek
@@ -296,17 +298,17 @@ onMounted(() => {
         style="width: 320px; flex-shrink: 0; overflow-y: auto"
       >
         <State
-          v-if="selectedCircleId != null"
-          :state="getCircle(selectedCircleId)"
-          @save="updateNode"
-          @delete="() => deleteNode(selectedCircleId)"
+          v-if="selectedStateId != null"
+          :state="getState(selectedStateId)"
+          @save="updateState"
+          @delete="() => deleteState(selectedStateId)"
         />
         <Dogodek
-          v-else-if="selectedArrowId != null"
-          :state="getEdge(selectedArrowId)"
-          :procesi="_procesi"
-          @save="updateEdge"
-          @delete="() => deleteEdge(selectedArrowId)"
+          v-else-if="selectedEventId != null"
+          :event="getEvent(selectedEventId)"
+          :proceses="_proceses"
+          @save="updateEvent"
+          @delete="() => deleteEvent(selectedEventId)"
         />
         <div v-else class="bg-light p-3 text-gray">
           Izberite stanje ali dogodek za prikaz podrobnosti.

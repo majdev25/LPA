@@ -2,33 +2,33 @@ export class GraphRenderer {
   constructor() {
     this.svg = null;
     this.graph = null;
-    (this.d3 = null), (this.selectedCircleId = null);
-    this.selectedArrowId = null;
-    this.handleCircleClick = null;
-    this.handleArrowClick = null;
+    (this.d3 = null), (this.selectedStateId = null);
+    this.selectedEventId = null;
+    this.handleStateClick = null;
+    this.handleEventClick = null;
   }
 
   init({
     svg,
     graph,
     d3,
-    selectedCircleId,
-    selectedArrowId,
-    handleCircleClick,
-    handleArrowClick,
+    selectedStateId,
+    selectedEventId,
+    handleStateClick,
+    handleEventClick,
   }) {
     this.svg = svg;
     this.graph = graph;
     this.d3 = d3;
-    this.selectedCircleId = selectedCircleId;
-    this.selectedArrowId = selectedArrowId;
-    this.handleCircleClick = handleCircleClick;
-    this.handleArrowClick = handleArrowClick;
+    this.selectedStateId = selectedStateId;
+    this.selectedEventId = selectedEventId;
+    this.handleStateClick = handleStateClick;
+    this.handleEventClick = handleEventClick;
 
     this.svg
       .append("defs")
       .append("marker")
-      .attr("id", "arrow")
+      .attr("id", "event")
       .attr("viewBox", "0 0 10 10")
       .attr("refX", "10")
       .attr("refY", "5")
@@ -43,28 +43,28 @@ export class GraphRenderer {
   render() {
     const svg = this.svg;
     const graph = this.graph;
-    const selectedCircleId = this.selectedCircleId.value;
-    const selectedArrowId = this.selectedArrowId.value;
-    const handleCircleClick = this.handleCircleClick;
+    const selectedStateId = this.selectedStateId.value;
+    const selectedEventId = this.selectedEventId.value;
+    const handleStateClick = this.handleStateClick;
 
     const defs = {
       svg,
       graph,
-      selectedArrowId,
-      selectedCircleId,
-      handleCircleClick,
+      selectedEventId,
+      selectedStateId,
+      handleStateClick,
     };
 
-    this.drawEdges(defs);
-    this.drawNodes(defs);
+    this.drawEvents(defs);
+    this.drawStates(defs);
   }
 
   // =======================
-  // DRAW NODES
+  // DRAW states
   // =======================
 
-  drawNodes(defs) {
-    const { svg, graph, selectedCircleId, handleCircleClick } = defs;
+  drawStates(defs) {
+    const { svg, graph, selectedStateId, handleStateClick } = defs;
     const drag = this.d3.drag().on("drag", (event, d) => {
       d.x = event.x;
       d.y = event.y;
@@ -72,13 +72,13 @@ export class GraphRenderer {
     });
 
     const groups = svg
-      .selectAll("g.node")
-      .data(graph.nodes, (d) => d.id)
+      .selectAll("g.state")
+      .data(graph.states, (d) => d.id)
       .join("g")
-      .attr("class", "node")
+      .attr("class", "state")
       .attr("transform", (d) => `translate(${d.x}, ${d.y})`)
       .call(drag)
-      .on("click", handleCircleClick);
+      .on("click", handleStateClick);
 
     // outer circle (bigger red border)
     groups
@@ -98,18 +98,18 @@ export class GraphRenderer {
       .join("circle")
       .attr("class", "inner")
       .attr("r", (d) => (d.isStart ? d.r - 5 : d.r))
-      .attr("fill", (d) => (d.id === selectedCircleId ? "orange" : "white"))
+      .attr("fill", (d) => (d.id === selectedStateId ? "orange" : "white"))
       .attr("stroke", "black")
       .attr("stroke-width", 2)
       .style("cursor", "pointer");
 
-    svg.selectAll("text.node-label").remove();
+    svg.selectAll("text.state-label").remove();
 
     svg
-      .selectAll("rect.node-label-bg")
-      .data(graph.nodes)
+      .selectAll("rect.state-label-bg")
+      .data(graph.states)
       .join("rect")
-      .attr("class", "node-label-bg")
+      .attr("class", "state-label-bg")
       .attr("x", (d) => d.x - (d.label.length * 8 + 10) / 2) // center behind text
       .attr("y", (d) => d.y + d.r + 18 - 16) // align with text vertically
       .attr("width", (d) => d.label.length * 8 + 10) // dynamic width
@@ -120,12 +120,12 @@ export class GraphRenderer {
       .attr("rx", 4) // rounded corners
       .raise();
 
-    // Node labels
+    // state labels
     svg
-      .selectAll("text.node-label")
-      .data(graph.nodes)
+      .selectAll("text.state-label")
+      .data(graph.states)
       .join("text")
-      .attr("class", "node-label")
+      .attr("class", "state-label")
       .attr("x", (d) => d.x)
       .attr("y", (d) => d.y + d.r + 18)
       .attr("text-anchor", "middle")
@@ -136,124 +136,124 @@ export class GraphRenderer {
   }
 
   // =======================
-  // DRAW EDGES
+  // DRAW events
   // =======================
 
-  drawEdges(defs) {
-    const { svg, graph, selectedArrowId } = defs;
-    svg.selectAll("path.arrow").remove();
+  drawEvents(defs) {
+    const { svg, graph, selectedEventId } = defs;
+    svg.selectAll("path.event").remove();
     svg.selectAll("circle.ctrl").remove();
-    svg.selectAll("rect.arrow-label-bg").remove();
-    svg.selectAll("text.arrow-label").remove();
+    svg.selectAll("rect.event-label-bg").remove();
+    svg.selectAll("text.event-label").remove();
 
-    graph.edges.forEach((edge) => {
-      const c1 = graph.nodes.find((n) => n.id === edge.from);
-      const c2 = graph.nodes.find((n) => n.id === edge.to);
-      if (!c1 || !c2 || !edge.ctrl) return;
+    graph.events.forEach((event) => {
+      const c1 = graph.states.find((n) => n.id === event.from);
+      const c2 = graph.states.find((n) => n.id === event.to);
+      if (!c1 || !c2 || !event.ctrl) return;
 
       let d;
 
-      if (edge.from === edge.to) {
+      if (event.from === event.to) {
         // --- self-loop ---
-        const dx = edge.ctrl.x - c1.x;
-        const dy = edge.ctrl.y - c1.y;
+        const dx = event.ctrl.x - c1.x;
+        const dy = event.ctrl.y - c1.y;
         const dist = Math.sqrt(dx * dx + dy * dy);
         const angle = Math.atan2(dy, dx);
         const angleOffset = Math.PI / 4; // ±45°
 
         // compute loop control points
-        edge._ctrl1 = {
+        event._ctrl1 = {
           x: c1.x + dist * Math.cos(angle - angleOffset),
           y: c1.y + dist * Math.sin(angle - angleOffset),
         };
-        edge._ctrl2 = {
+        event._ctrl2 = {
           x: c1.x + dist * Math.cos(angle + angleOffset),
           y: c1.y + dist * Math.sin(angle + angleOffset),
         };
 
-        edge._start = this.getBorderPoint(c1, edge._ctrl1, c1.r);
-        edge._end = this.getBorderPoint(c1, edge._ctrl2, c1.r);
-        edge._mid = this.getCubicBezierMidpoint(
-          edge._start,
-          edge._ctrl1,
-          edge._ctrl2,
-          edge._end,
+        event._start = this.getBorderPoint(c1, event._ctrl1, c1.r);
+        event._end = this.getBorderPoint(c1, event._ctrl2, c1.r);
+        event._mid = this.getCubicBezierMidpoint(
+          event._start,
+          event._ctrl1,
+          event._ctrl2,
+          event._end,
           0.5
         );
 
-        d = `M${edge._start.x},${edge._start.y} C${edge._ctrl1.x},${edge._ctrl1.y} ${edge._ctrl2.x},${edge._ctrl2.y} ${edge._end.x},${edge._end.y}`;
+        d = `M${event._start.x},${event._start.y} C${event._ctrl1.x},${event._ctrl1.y} ${event._ctrl2.x},${event._ctrl2.y} ${event._end.x},${event._end.y}`;
       } else {
-        // --- normal edge ---
-        edge._start = this.getBorderPoint(c1, edge.ctrl, c1.r);
-        edge._end = this.getBorderPoint(c2, edge.ctrl, c2.r);
-        edge._ctrl = this.getStretchedCtrl(c1, c2, edge.ctrl);
-        edge._mid = this.getQuadraticBezierMidpoint(
-          edge._start,
-          edge._ctrl,
-          edge._end,
+        // --- normal event ---
+        event._start = this.getBorderPoint(c1, event.ctrl, c1.r);
+        event._end = this.getBorderPoint(c2, event.ctrl, c2.r);
+        event._ctrl = this.getStretchedCtrl(c1, c2, event.ctrl);
+        event._mid = this.getQuadraticBezierMidpoint(
+          event._start,
+          event._ctrl,
+          event._end,
           0.5
         );
 
-        d = `M${edge._start.x},${edge._start.y} Q${edge._ctrl.x},${edge._ctrl.y} ${edge._end.x},${edge._end.y}`;
+        d = `M${event._start.x},${event._start.y} Q${event._ctrl.x},${event._ctrl.y} ${event._end.x},${event._end.y}`;
       }
 
       svg
         .append("path")
-        .attr("class", "arrow")
+        .attr("class", "event")
         .attr("d", d)
-        .attr("stroke", edge.id === selectedArrowId ? "orange" : "black")
+        .attr("stroke", event.id === selectedEventId ? "orange" : "black")
         .attr("stroke-width", 1)
         .attr("fill", "none")
-        .attr("marker-end", "url(#arrow)")
+        .attr("marker-end", "url(#event)")
         .style("cursor", "pointer")
-        .on("click", (event) => {
-          this.handleArrowClick(event, edge.id);
+        .on("click", (domEvent) => {
+          this.handleEventClick(domEvent, event.id);
         });
     });
 
     svg
-      .selectAll("rect.arrow-label-bg")
-      .data(graph.edges)
+      .selectAll("rect.event-label-bg")
+      .data(graph.events)
       .join("rect")
-      .attr("class", "arrow-label-bg")
+      .attr("class", "event-label-bg")
       .attr("x", (d) => {
         if (!d._mid) return 0;
-        const width = d.renderArrowName(d).length * 8 + 10;
+        const width = d.renderEventName(d).length * 8 + 10;
         return d._mid.x - width / 2; // center rect on curve midpoint
       })
       .attr("y", (d) => {
         if (!d._mid) return 0;
         return d._mid.y - 12; // vertical offset
       })
-      .attr("width", (d) => d.renderArrowName(d).length * 8 + 10)
+      .attr("width", (d) => d.renderEventName(d).length * 8 + 10)
       .attr("height", 20)
       .attr("fill", "white")
       .attr("stroke", "black")
       .attr("stroke-width", 1)
       .attr("rx", 4)
       .style("cursor", "pointer")
-      .on("click", (event, d) => {
-        this.handleArrowClick(event, d.id);
+      .on("click", (domEvent, d) => {
+        this.handleEventClick(domEvent, d.id);
       });
 
     svg
-      .selectAll("text.arrow-label")
-      .data(graph.edges)
+      .selectAll("text.event-label")
+      .data(graph.events)
       .join("text")
-      .attr("class", "arrow-label")
+      .attr("class", "event-label")
       .attr("x", (d) => (d._mid ? d._mid.x : 0))
       .attr("y", (d) => (d._mid ? d._mid.y + 4 : 0)) // vertical offset for visual centering
       .attr("text-anchor", "middle")
       .attr("font-size", 14)
       .attr("fill", "black")
-      .text((d) => d.renderArrowName(d))
+      .text((d) => d.renderEventName(d))
       .style("cursor", "pointer")
-      .on("click", (event, d) => {
-        this.handleArrowClick(event, d.id);
+      .on("click", (domEvent, d) => {
+        this.handleEventClick(domEvent, d.id);
       });
 
-    graph.edges.forEach(({ ctrl, id }, i) => {
-      if (id === selectedArrowId) {
+    graph.events.forEach(({ ctrl, id }, i) => {
+      if (id === selectedEventId) {
         svg
           .append("circle")
           .attr("class", "ctrl")
@@ -305,7 +305,7 @@ export class GraphRenderer {
   }
 
   getLoopCtrl(c1, c2, ctrl) {
-    // Midpoint between nodes
+    // Midpoint between states
     const mid = { x: (c1.x + c2.x) / 2, y: (c1.y + c2.y) / 2 };
 
     // Vector defined by ctrl relative to center (size + direction)
