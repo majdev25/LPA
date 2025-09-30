@@ -1,7 +1,7 @@
 <script setup>
 import { onMounted, ref, reactive, onUnmounted } from "vue";
 import * as d3 from "d3";
-import { GraphRenderer } from "./ProcesComponents/ProcesGraphRenderer";
+import { GraphRenderer } from "./ProcesComponents/ProcesGraphRenderer.js";
 import State from "./ProcesComponents/State.vue";
 import Event from "./ProcesComponents/Event.vue";
 
@@ -25,6 +25,7 @@ const props = defineProps({
       id: "p0",
     }),
   },
+  _id: null,
 });
 const graph = reactive({ ...props._graph });
 const proceses = reactive([...props._proceses]);
@@ -81,7 +82,7 @@ function addState(x, y) {
     r: 15,
     label: id,
     isStart: false,
-    parent_proces: graph.id,
+    parent_proces: props._id,
   });
   selectedStateId.value = id;
   renderer.render();
@@ -118,7 +119,7 @@ function addEvent(fromId, toId) {
     type: "spr",
     from_process: "p0",
     to_process: "p0",
-    parent_proces: graph.id,
+    parent_proces: props._id,
     renderEventName,
   });
   renderer.render();
@@ -254,7 +255,7 @@ onMounted(() => {
     >
       <div>
         <div class="fs-sm fw-bold ms-2">
-          Proces {{ proceses.find((x) => x.id == graph.id).label }}
+          Proces {{ proceses.find((x) => x.id == props._id).label }}
         </div>
         <div class="d-flex align-items-center">
           <div

@@ -1,97 +1,106 @@
 <script setup>
-import { onMounted, ref, reactive, onUnmounted } from "vue";
+import { onMounted, ref, reactive, onUnmounted, watch } from "vue";
 import * as d3 from "d3";
 import { GraphRenderer } from "./SystemComponents/SystemGraphRenderer";
-import State from "./ProcesComponents/State.vue";
-import Event from "./ProcesComponents/Event.vue";
+import ProcesInfo from "./SystemComponents/ProcesInfo.vue";
+import Channel from "./SystemComponents/Channel.vue";
 import procesImg from "./SystemComponents/proces.png";
 import procesActiveImg from "./SystemComponents/proces.active.png";
 
 const d3Container = ref(null);
-const selectedStateId = ref(null);
-const selectedEventId = ref(null);
+const selectedProcesId = ref(null);
+const selectedChannelId = ref(null);
 
-const props = defineProps({
-  _proceses: {
-    type: Array,
-    default: () => [
-      { label: "p0", id: "p0" },
-      { label: "p1", id: "p1" },
-    ],
+const graph = reactive({
+      processes: [],
+      channels: [],
+    }
+  );
+const mode = ref({ addProces: true, addChannel: false });
+
+watch(
+  () => graph,
+  async (newGraph) => {
+    try {
+      const result = await window.api.invoke("update-system", {
+        graph: JSON.stringify(newGraph),
+      });
+      console.log("Graph updated:", result);
+    } catch (err) {
+      console.error("Failed to update graph:", err);
+    }
   },
-  _graph: {
-    type: Object,
-    default: () => ({
-      states: [],
-      events: [],
-      id: "p0",
-    }),
-  },
-});
-const graph = reactive({ ...props._graph });
+  { deep: true }
+);
 
-const mode = ref({ addState: true, addEvent: false });
-
-let nextStateId = 0;
-let nextEventId = 0;
-function genStateId() {
-  return `s${nextStateId++}`;
+let nextProcesId = 0;
+let nextChannelId = 0;
+function genProcesId() {
+  return `p${nextProcesId++}`;
 }
-function genEventId() {
-  return `d${nextEventId++}`;
+function genChannelId() {
+  return `c${nextChannelId++}`;
 }
 
-function getState(id) {
-  return graph.states.find((c) => c.id === id);
+function getProces(id) {
+  return graph.processes.find((c) => c.id === id);
 }
-function getEvent(id) {
-  return graph.events.find((a) => a.id === id);
+function getChannel(id) {
+  return graph.channels.find((a) => a.id === id);
 }
 
-function updateState(data) {
-  const index = graph.states.findIndex((c) => c.id === selectedStateId.value);
+function updateProces(data) {
+  const index = graph.processes.findIndex((c) => c.id === selectedProcesId.value);
   if (index !== -1) {
-    graph.states[index] = data;
+    graph.processes[index].label = data.label;
   }
   renderer.render();
 }
 
-function deleteState(id) {
-  const stateIndex = graph.states.findIndex((c) => c.id === id);
-  if (stateIndex !== -1) {
-    graph.states.splice(stateIndex, 1);
-    // Also remove associated events
-    graph.events = graph.events.filter((e) => e.from !== id && e.to !== id);
-    selectedStateId.value = -1;
+function deleteProces(id) {
+  const procesIndex = graph.processes.findIndex((c) => c.id === id);
+  if (procesIndex !== -1) {
+    graph.processes.splice(procesIndex, 1);
+    // Also remove associated channels
+    selectedProcesId.value = null;
+    selectedChannelId.value = null;
+    graph.channels = graph.channels.filter((e) => e.from !== id && e.to !== id);
     renderer.render();
   }
 }
 
 function globalClick({ x, y }) {
-  if (mode.value.addState) {
-    addState(x, y);
+  if (mode.value.addProces) {
+    addProces(x, y);
   }
 }
 
-function addState(x, y) {
-  let id = genStateId();
-  graph.states.push({
+function addProces(x, y) {
+  let id = genProcesId();
+  graph.processes.push({
     id,
     x,
     y,
     r: 15,
     label: id,
-    isStart: false,
-    parent_proces: graph.id,
+    procesGraph: {states: [], events: []}
   });
-  selectedStateId.value = id;
+  selectedProcesId.value = id;
   renderer.render();
 }
 
-function addEvent(fromId, toId) {
-  const c1 = getState(fromId);
-  const c2 = getState(toId);
+function addChannel(fromId, toId) {
+  const c1 = getProces(fromId);
+  const c2 = getProces(toId);
   if (!c1 || !c2) return;
+
+  const exists = graph.channels.some(
+    (ch) =>
+      (ch.proces1.id === fromId && ch.proces2.id === toId) ||
+      (ch.proces1.id === toId && ch.proces2.id === fromId)
+  );
+  if (exists) return;
+
   let ctrl;
   if (fromId === toId) {
     ctrl = {
@@ -109,90 +118,85 @@ function addEvent(fromId, toId) {
     const oy = my + (curveOffset * dx) / len;
     ctrl = { x: ox, y: oy };
   }
-  let id = genEventId();
-  graph.events.push({
+
+  let id = genChannelId();
+  graph.channels.push({
     id,
-    from: fromId,
-    to: toId,
+    proces1: {
+      id: fromId,
+      q_length: 2,
+    },
+    proces2: {
+      id: toId,
+      q_length: 2,
+    },
     ctrl,
-    label: id,
     type: "spr",
-    from_process: "p0",
-    to_process: "p0",
-    parent_proces: graph.id,
-    renderEventName,
+    renderChannelName,
   });
   renderer.render();
 }
 
-function renderEventName(event) {
+
+function renderChannelName(channel) {
   // use edge.type and edge.label directly
-  if (event.type === "spr") {
-    return "+" + event.label + "(" + event.from_process + ")";
-  } else if (event.type === "odd") {
-    return "-" + event.label + "(" + event.to_process + ")";
-  } else if (event.type === "lok") {
-    return "#" + event.label;
-  } else if (event.type === "tra") {
-    return (
-      event.label + "(" + event.from_process + "," + event.to_process + ")"
-    );
-  }
+  return channel.proces1.id + "-" + channel.proces2.id;
 }
 
-function updateEvent(data) {
-  const index = graph.events.findIndex((c) => c.id === selectedEventId.value);
+function updateChannel(data) {
+  const index = graph.channels.findIndex((c) => c.id === selectedChannelId.value);
   if (index !== -1) {
-    graph.events[index] = data;
+    graph.channels[index].proces1 = data.proces1;
+    graph.channels[index].proces2 = data.proces2;
   }
   renderer.render();
 }
 
-function deleteEvent(id) {
-  console.log(id);
-  const eventIndex = graph.events.findIndex((c) => c.id === id);
-  if (eventIndex !== -1) {
-    graph.events.splice(eventIndex, 1);
+function deleteChannel(id) {
+  const channelIndex = graph.channels.findIndex((c) => c.id === id);
+  if (channelIndex !== -1) {
+    graph.channels.splice(channelIndex, 1);
     renderer.render();
   }
+  selectedChannelId.value = null;
 }
 
 const renderer = new GraphRenderer();
 
 function clearAll() {
-  mode.value.addState = false;
-  mode.value.addEvent = false;
-  selectedEventId.value = null;
-  selectedStateId.value = null;
+  mode.value.addProces = false;
+  mode.value.addChannel = false;
+  selectedChannelId.value = null;
+  selectedProcesId.value = null;
   renderer.render();
 }
 
-function toggleAddState() {
+function toggleAddProces() {
   clearAll();
-  mode.value.addState = !mode.value.addState;
+  mode.value.addProces = !mode.value.addProces;
 }
 
-function toggleAddEvent() {
+function toggleAddChannel() {
   clearAll();
-  mode.value.addEvent = !mode.value.addEvent;
+  mode.value.addChannel = !mode.value.addChannel;
 }
 
-function handleStateClick(event, d) {
-  event.stopPropagation();
-  selectedEventId.value = null;
-  if (selectedStateId.value === null || !mode.value.addEvent) {
-    selectedStateId.value = d.id;
-  } else if (mode.value.addEvent) {
-    addEvent(selectedStateId.value, d.id);
-    selectedStateId.value = null;
+function handleProcesClick(channel, d) {
+  channel.stopPropagation();
+  selectedChannelId.value = null;
+  if (selectedProcesId.value === null || !mode.value.addChannel) {
+    selectedProcesId.value = d.id;
+  } else if (mode.value.addChannel) {
+    addChannel(selectedProcesId.value, d.id);
+    selectedProcesId.value = null;
   }
   renderer.render();
 }
 
-function handleEventClick(event, i) {
-  event.stopPropagation();
-  selectedStateId.value = null;
-  selectedEventId.value = i;
+function handleChannelClick(channel, i) {
+  channel.stopPropagation();
+  selectedProcesId.value = null;
+  selectedChannelId.value = i;
   renderer.render();
 }
 
@@ -206,12 +210,12 @@ onMounted(() => {
     .attr("width", container.clientWidth)
     .attr("height", container.clientHeight)
     .style("display", "block") // remove inline gaps
-    .on("click", function (event) {
-      if (event.target.tagName === "svg") {
-        const [x, y] = d3.pointer(event);
+    .on("click", function (channel) {
+      if (channel.target.tagName === "svg") {
+        const [x, y] = d3.pointer(channel);
         globalClick({ x, y });
-        selectedStateId.value = null;
-        selectedEventId.value = null;
+        selectedProcesId.value = null;
+        selectedChannelId.value = null;
         renderer.render();
       }
     });
@@ -221,7 +225,7 @@ onMounted(() => {
     svg
       .attr("width", container.clientWidth)
       .attr("height", container.clientHeight);
-    renderer.render(); // optional: re-render states/events to fit
+    renderer.render();
   }
 
   window.addEventListener("resize", resizeSvg);
@@ -231,10 +235,10 @@ onMounted(() => {
     svg,
     d3,
     graph,
-    selectedStateId,
-    selectedEventId,
-    handleStateClick,
-    handleEventClick,
+    selectedProcesId,
+    selectedChannelId,
+    handleProcesClick,
+    handleChannelClick,
   });
 
   renderer.render();
@@ -259,24 +263,24 @@ onMounted(() => {
           <div
             class="d-flex align-items-center me-2 cursor-pointer fs-6 text-tight text-sm _badge hover-bg-light"
             :class="{
-              'bg-light text-primary': mode.addState,
-              'text-gray': !mode.addState,
+              'bg-light text-primary': mode.addProces,
+              'text-gray': !mode.addProces,
             }"
-            @click="toggleAddState"
+            @click="toggleAddProces"
           >
-          <img v-if="!mode.addState" :src="procesImg" width="20px" class="me-1"></img>
+          <img v-if="!mode.addProces" :src="procesImg" width="20px" class="me-1"></img>
           <img v-else :src="procesActiveImg" width="20px" class="me-1"></img>
-            Dodaj stanje
+            Dodaj proces
           </div>
           <div
             class="d-flex align-items-center me-2 cursor-pointer fs-6 text-tight text-sm _badge hover-bg-light"
             :class="{
-              'bg-light text-primary': mode.addEvent,
-              'text-gray': !mode.addEvent,
+              'bg-light text-primary': mode.addChannel,
+              'text-gray': !mode.addChannel,
             }"
-            @click="toggleAddEvent"
+            @click="toggleAddChannel"
           >
-            <FontAwesomeIcon :icon="['fa', 'arrow-right']" class="me-1" />
+            <FontAwesomeIcon :icon="['fa', 'bullhorn']" class="me-1" />
             Dodaj dogodek
           </div>
         </div>
@@ -297,18 +301,17 @@ onMounted(() => {
         class="d-flex flex-column border-start p-3"
         style="width: 320px; flex-shrink: 0; overflow-y: auto"
       >
-        <State
-          v-if="selectedStateId != null"
-          :state="getState(selectedStateId)"
-          @save="updateState"
-          @delete="() => deleteState(selectedStateId)"
+        <ProcesInfo
+          v-if="selectedProcesId != null"
+          :proces="getProces(selectedProcesId)"
+          @save="updateProces"
+          @delete="() => deleteProces(selectedProcesId)"
         />
-        <Event
-          v-else-if="selectedEventId != null"
-          :event="getEvent(selectedEventId)"
-          :proceses="_proceses"
-          @save="updateEvent"
-          @delete="() => deleteEvent(selectedEventId)"
+        <Channel
+          v-else-if="selectedChannelId != null"
+          :channel="getChannel(selectedChannelId)"
+          @save="updateChannel"
+          @delete="() => deleteChannel(selectedChannelId)"
         />
         <div v-else class="bg-light p-3 text-gray">
           Izberite stanje ali dogodek za prikaz podrobnosti.

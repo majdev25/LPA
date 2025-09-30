@@ -2,7 +2,7 @@ const path = require("path");
 const { app, BrowserWindow, ipcMain } = require("electron");
 const { registerIpcHandlers } = require("./ipc");
 
-function createWindow(type) {
+function createWindow(type, data) {
   const win = new BrowserWindow({
     width: 800,
     height: 600,
@@ -23,13 +23,16 @@ function createWindow(type) {
 
   win.webContents.on("did-finish-load", () => {
     win.webContents.send("win-type", type);
+    win.webContents.send("win-data", data);
   });
 }
 
 // App lifecycle
 app.whenReady().then(() => {
-  createWindow("system");
-  registerIpcHandlers(); // register IPC once app is ready
+  createWindow("system", null);
+
+  const dep = { createWindow };
+  registerIpcHandlers(dep); // register IPC once app is ready
 });
 
 app.on("window-all-closed", () => {

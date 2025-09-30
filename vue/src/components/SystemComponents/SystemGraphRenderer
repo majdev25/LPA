@@ -4,33 +4,33 @@ export class GraphRenderer {
   constructor() {
     this.svg = null;
     this.graph = null;
-    (this.d3 = null), (this.selectedStateId = null);
-    this.selectedEventId = null;
-    this.handleStateClick = null;
-    this.handleEventClick = null;
+    (this.d3 = null), (this.selectedProcesId = null);
+    this.selectedChannelId = null;
+    this.handleProcesClick = null;
+    this.handleChannelClick = null;
   }
 
   init({
     svg,
     graph,
     d3,
-    selectedStateId,
-    selectedEventId,
-    handleStateClick,
-    handleEventClick,
+    selectedProcesId,
+    selectedChannelId,
+    handleProcesClick,
+    handleChannelClick,
   }) {
     this.svg = svg;
     this.graph = graph;
     this.d3 = d3;
-    this.selectedStateId = selectedStateId;
-    this.selectedEventId = selectedEventId;
-    this.handleStateClick = handleStateClick;
-    this.handleEventClick = handleEventClick;
+    this.selectedProcesId = selectedProcesId;
+    this.selectedChannelId = selectedChannelId;
+    this.handleProcesClick = handleProcesClick;
+    this.handleChannelClick = handleChannelClick;
 
     this.svg
       .append("defs")
       .append("marker")
-      .attr("id", "event")
+      .attr("id", "channel")
       .attr("viewBox", "0 0 10 10")
       .attr("refX", "10")
       .attr("refY", "5")
@@ -45,42 +45,42 @@ export class GraphRenderer {
   render() {
     const svg = this.svg;
     const graph = this.graph;
-    const selectedStateId = this.selectedStateId.value;
-    const selectedEventId = this.selectedEventId.value;
-    const handleStateClick = this.handleStateClick;
+    const selectedProcesId = this.selectedProcesId.value;
+    const selectedChannelId = this.selectedChannelId.value;
+    const handleProcesClick = this.handleProcesClick;
 
     const defs = {
       svg,
       graph,
-      selectedEventId,
-      selectedStateId,
-      handleStateClick,
+      selectedChannelId,
+      selectedProcesId,
+      handleProcesClick,
     };
 
-    this.drawEvents(defs);
-    this.drawStates(defs);
+    this.drawChannels(defs);
+    this.drawProcesses(defs);
   }
 
   // =======================
-  // DRAW states
+  // DRAW process
   // =======================
 
-  drawStates(defs) {
-    const { svg, graph, selectedStateId, handleStateClick } = defs;
-    const drag = this.d3.drag().on("drag", (event, d) => {
-      d.x = event.x;
-      d.y = event.y;
+  drawProcesses(defs) {
+    const { svg, graph, selectedProcesId, handleProcesClick } = defs;
+    const drag = this.d3.drag().on("drag", (channel, d) => {
+      d.x = channel.x;
+      d.y = channel.y;
       this.render();
     });
 
     const groups = svg
-      .selectAll("g.state")
-      .data(graph.states, (d) => d.id)
+      .selectAll("g.proces")
+      .data(graph.processes, (d) => d.id)
       .join("g")
-      .attr("class", "state")
+      .attr("class", "proces")
       .attr("transform", (d) => `translate(${d.x}, ${d.y})`)
       .call(drag)
-      .on("click", handleStateClick);
+      .on("click", handleProcesClick);
 
     // circle (main)
     groups
@@ -89,12 +89,12 @@ export class GraphRenderer {
       .join("circle")
       .attr("class", "inner")
       .attr("r", (d) => (d.isStart ? d.r - 5 : d.r))
-      .attr("fill", (d) => (d.id === selectedStateId ? "orange" : "white"))
+      .attr("fill", (d) => (d.id === selectedProcesId ? "orange" : "white"))
       .attr("stroke", "black")
       .attr("stroke-width", 2)
       .style("cursor", "pointer");
 
-    svg.selectAll("text.state-label").remove();
+    svg.selectAll("text.proces-label").remove();
 
     groups
       .selectAll("image.node-icon")
@@ -109,10 +109,10 @@ export class GraphRenderer {
       .style("cursor", "pointer");
 
     svg
-      .selectAll("rect.state-label-bg")
-      .data(graph.states)
+      .selectAll("rect.proces-label-bg")
+      .data(graph.processes)
       .join("rect")
-      .attr("class", "state-label-bg")
+      .attr("class", "proces-label-bg")
       .attr("x", (d) => d.x - (d.label.length * 8 + 10) / 2) // center behind text
       .attr("y", (d) => d.y + d.r + 18 - 16) // align with text vertically
       .attr("width", (d) => d.label.length * 8 + 10) // dynamic width
@@ -123,112 +123,111 @@ export class GraphRenderer {
       .attr("rx", 4) // rounded corners
       .raise();
 
-    // state labels
+    // proces labels
     svg
-      .selectAll("text.state-label")
-      .data(graph.states)
+      .selectAll("text.proces-label")
+      .data(graph.processes)
       .join("text")
-      .attr("class", "state-label")
+      .attr("class", "proces-label")
       .attr("x", (d) => d.x)
       .attr("y", (d) => d.y + d.r + 18)
       .attr("text-anchor", "middle")
       .attr("font-size", 16)
       .attr("fill", "black")
-      .style("pointer-events", "none") // allow dragging background later
+      .style("pointer-channels", "none") // allow dragging background later
       .text((d) => d.label);
   }
 
   // =======================
-  // DRAW events
+  // DRAW channels
   // =======================
 
-  drawEvents(defs) {
-    const { svg, graph, selectedEventId } = defs;
-    svg.selectAll("path.event").remove();
+  drawChannels(defs) {
+    const { svg, graph, selectedChannelId } = defs;
+    svg.selectAll("path.channel").remove();
     svg.selectAll("circle.ctrl").remove();
-    svg.selectAll("rect.event-label-bg").remove();
-    svg.selectAll("text.event-label").remove();
+    svg.selectAll("rect.channel-label-bg").remove();
+    svg.selectAll("text.channel-label").remove();
 
-    graph.events.forEach((event) => {
-      const c1 = graph.states.find((n) => n.id === event.from);
-      const c2 = graph.states.find((n) => n.id === event.to);
-      if (!c1 || !c2 || !event.ctrl) return;
+    graph.channels.forEach((channel) => {
+      const c1 = graph.processes.find((n) => n.id === channel.proces1.id);
+      const c2 = graph.processes.find((n) => n.id === channel.proces2.id);
+      if (!c1 || !c2 || !channel.ctrl) return;
 
       let d;
 
-      if (event.from === event.to) {
+      if (channel.proces1.id === channel.proces2.id) {
         // --- self-loop ---
-        const dx = event.ctrl.x - c1.x;
-        const dy = event.ctrl.y - c1.y;
+        const dx = channel.ctrl.x - c1.x;
+        const dy = channel.ctrl.y - c1.y;
         const dist = Math.sqrt(dx * dx + dy * dy);
         const angle = Math.atan2(dy, dx);
         const angleOffset = Math.PI / 4; // ±45°
 
         // compute loop control points
-        event._ctrl1 = {
+        channel._ctrl1 = {
           x: c1.x + dist * Math.cos(angle - angleOffset),
           y: c1.y + dist * Math.sin(angle - angleOffset),
         };
-        event._ctrl2 = {
+        channel._ctrl2 = {
           x: c1.x + dist * Math.cos(angle + angleOffset),
           y: c1.y + dist * Math.sin(angle + angleOffset),
         };
 
-        event._start = this.getBorderPoint(c1, event._ctrl1, c1.r);
-        event._end = this.getBorderPoint(c1, event._ctrl2, c1.r);
-        event._mid = this.getCubicBezierMidpoint(
-          event._start,
-          event._ctrl1,
-          event._ctrl2,
-          event._end,
+        channel._start = this.getBorderPoint(c1, channel._ctrl1, c1.r);
+        channel._end = this.getBorderPoint(c1, channel._ctrl2, c1.r);
+        channel._mid = this.getCubicBezierMidpoint(
+          channel._start,
+          channel._ctrl1,
+          channel._ctrl2,
+          channel._end,
           0.5
         );
 
-        d = `M${event._start.x},${event._start.y} C${event._ctrl1.x},${event._ctrl1.y} ${event._ctrl2.x},${event._ctrl2.y} ${event._end.x},${event._end.y}`;
+        d = `M${channel._start.x},${channel._start.y} C${channel._ctrl1.x},${channel._ctrl1.y} ${channel._ctrl2.x},${channel._ctrl2.y} ${channel._end.x},${channel._end.y}`;
       } else {
-        // --- normal event ---
-        event._start = this.getBorderPoint(c1, event.ctrl, c1.r);
-        event._end = this.getBorderPoint(c2, event.ctrl, c2.r);
-        event._ctrl = this.getStretchedCtrl(c1, c2, event.ctrl);
-        event._mid = this.getQuadraticBezierMidpoint(
-          event._start,
-          event._ctrl,
-          event._end,
+        // --- normal channel ---
+        channel._start = this.getBorderPoint(c1, channel.ctrl, c1.r);
+        channel._end = this.getBorderPoint(c2, channel.ctrl, c2.r);
+        channel._ctrl = this.getStretchedCtrl(c1, c2, channel.ctrl);
+        channel._mid = this.getQuadraticBezierMidpoint(
+          channel._start,
+          channel._ctrl,
+          channel._end,
           0.5
         );
 
-        d = `M${event._start.x},${event._start.y} Q${event._ctrl.x},${event._ctrl.y} ${event._end.x},${event._end.y}`;
+        d = `M${channel._start.x},${channel._start.y} Q${channel._ctrl.x},${channel._ctrl.y} ${channel._end.x},${channel._end.y}`;
       }
 
       svg
         .append("path")
-        .attr("class", "event")
+        .attr("class", "channel")
         .attr("d", d)
-        .attr("stroke", event.id === selectedEventId ? "orange" : "black")
+        .attr("stroke", channel.id === selectedChannelId ? "orange" : "black")
         .attr("stroke-width", 1)
         .attr("fill", "none")
-        .attr("marker-end", "url(#event)")
         .style("cursor", "pointer")
         .on("click", (domEvent) => {
-          this.handleEventClick(domEvent, event.id);
+          this.handleChannelClick(domEvent, channel.id);
         });
     });
 
     svg
-      .selectAll("rect.event-label-bg")
-      .data(graph.events)
+      .selectAll("rect.channel-label-bg")
+      .data(graph.channels)
       .join("rect")
-      .attr("class", "event-label-bg")
+      .attr("class", "channel-label-bg")
       .attr("x", (d) => {
         if (!d._mid) return 0;
-        const width = d.renderEventName(d).length * 8 + 10;
+        const width = d.renderChannelName(d).length * 8 + 10;
         return d._mid.x - width / 2; // center rect on curve midpoint
       })
       .attr("y", (d) => {
         if (!d._mid) return 0;
         return d._mid.y - 12; // vertical offset
       })
-      .attr("width", (d) => d.renderEventName(d).length * 8 + 10)
+      .attr("width", (d) => d.renderChannelName(d).length * 8 + 10)
       .attr("height", 20)
       .attr("fill", "white")
       .attr("stroke", "black")
@@ -236,27 +235,27 @@ export class GraphRenderer {
       .attr("rx", 4)
       .style("cursor", "pointer")
       .on("click", (domEvent, d) => {
-        this.handleEventClick(domEvent, d.id);
+        this.handleChannelClick(domEvent, d.id);
       });
 
     svg
-      .selectAll("text.event-label")
-      .data(graph.events)
+      .selectAll("text.channel-label")
+      .data(graph.channels)
       .join("text")
-      .attr("class", "event-label")
+      .attr("class", "channel-label")
       .attr("x", (d) => (d._mid ? d._mid.x : 0))
       .attr("y", (d) => (d._mid ? d._mid.y + 4 : 0)) // vertical offset for visual centering
       .attr("text-anchor", "middle")
       .attr("font-size", 14)
       .attr("fill", "black")
-      .text((d) => d.renderEventName(d))
+      .text((d) => d.renderChannelName(d))
       .style("cursor", "pointer")
       .on("click", (domEvent, d) => {
-        this.handleEventClick(domEvent, d.id);
+        this.handleChannelClick(domEvent, d.id);
       });
 
-    graph.events.forEach(({ ctrl, id }, i) => {
-      if (id === selectedEventId) {
+    graph.channels.forEach(({ ctrl, id }, i) => {
+      if (id === selectedChannelId) {
         svg
           .append("circle")
           .attr("class", "ctrl")
@@ -265,9 +264,9 @@ export class GraphRenderer {
           .attr("r", 8)
           .attr("fill", "orange")
           .call(
-            this.d3.drag().on("drag", (event) => {
-              ctrl.x = event.x;
-              ctrl.y = event.y;
+            this.d3.drag().on("drag", (channel) => {
+              ctrl.x = channel.x;
+              ctrl.y = channel.y;
               this.render();
             })
           );
@@ -308,7 +307,7 @@ export class GraphRenderer {
   }
 
   getLoopCtrl(c1, c2, ctrl) {
-    // Midpoint between states
+    // Midpoint between processes
     const mid = { x: (c1.x + c2.x) / 2, y: (c1.y + c2.y) / 2 };
 
     // Vector defined by ctrl relative to center (size + direction)
