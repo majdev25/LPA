@@ -6,6 +6,7 @@ export class GraphRenderer {
     this.selectedEventId = null;
     this.handleStateClick = null;
     this.handleEventClick = null;
+    this.renderEventName = null;
   }
 
   init({
@@ -16,6 +17,7 @@ export class GraphRenderer {
     selectedEventId,
     handleStateClick,
     handleEventClick,
+    renderEventName,
   }) {
     this.svg = svg;
     this.graph = graph;
@@ -24,6 +26,7 @@ export class GraphRenderer {
     this.selectedEventId = selectedEventId;
     this.handleStateClick = handleStateClick;
     this.handleEventClick = handleEventClick;
+    this.renderEventName = renderEventName;
 
     this.svg
       .append("defs")
@@ -218,14 +221,14 @@ export class GraphRenderer {
       .attr("class", "event-label-bg")
       .attr("x", (d) => {
         if (!d._mid) return 0;
-        const width = d.renderEventName(d).length * 8 + 10;
+        const width = this.renderEventName(d).length * 8 + 10;
         return d._mid.x - width / 2; // center rect on curve midpoint
       })
       .attr("y", (d) => {
         if (!d._mid) return 0;
         return d._mid.y - 12; // vertical offset
       })
-      .attr("width", (d) => d.renderEventName(d).length * 8 + 10)
+      .attr("width", (d) => this.renderEventName(d).length * 8 + 10)
       .attr("height", 20)
       .attr("fill", "white")
       .attr("stroke", "black")
@@ -246,7 +249,7 @@ export class GraphRenderer {
       .attr("text-anchor", "middle")
       .attr("font-size", 14)
       .attr("fill", "black")
-      .text((d) => d.renderEventName(d))
+      .text((d) => this.renderEventName(d))
       .style("cursor", "pointer")
       .on("click", (domEvent, d) => {
         this.handleEventClick(domEvent, d.id);

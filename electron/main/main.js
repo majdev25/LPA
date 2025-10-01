@@ -2,7 +2,13 @@ const path = require("path");
 const { app, BrowserWindow, ipcMain } = require("electron");
 const { registerIpcHandlers } = require("./ipc");
 
-function createWindow(type, data) {
+const windows = new Map();
+
+function createWindow(type, data, id) {
+  if (windows.has(id)) {
+    focusWindow(id);
+    return;
+  }
   const win = new BrowserWindow({
     width: 800,
     height: 600,
@@ -23,13 +29,20 @@ function createWindow(type, data) {
 
   win.webContents.on("did-finish-load", () => {
     win.webContents.send("win-type", type);
+    console.log(data);
     win.webContents.send("win-data", data);
   });
+
+  win.on("closed", () => {
+    windows.delete(id);
+  });
+
+  windows.set(id, win);
 }
 
 // App lifecycle
 app.whenReady().then(() => {
-  createWindow("system", null);
+  createWindow("system", null, "root");
 
   const dep = { createWindow };
   registerIpcHandlers(dep); // register IPC once app is ready
@@ -42,3 +55,17 @@ app.on("window-all-closed", () => {
 app.on("activate", () => {
   if (BrowserWindow.getAllWindows().length === 0) createWindow();
 });
+
+function focusWindow(id) {
+  const existingWin = windows.get(id);
+
+  if (!existingWin.isDestroyed()) {
+    if (existingWin.isMinimized()) {
+      existingWin.restore();
+    }
+    existingWin.focus();
+    return existingWin;
+  } else {
+    windows.delete(id);
+  }
+}

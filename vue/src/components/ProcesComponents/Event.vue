@@ -1,6 +1,6 @@
 <script setup>
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
-import { reactive, watch } from "vue";
+import { computed, reactive, watch, onMounted } from "vue";
 
 // Props
 const props = defineProps({
@@ -8,10 +8,19 @@ const props = defineProps({
     type: Object,
     default: () => ({}),
   },
-  proceses: {
-    type: Array,
-    default: () => [],
+  systemGraph: {
+    type: Object,
+    default: () => ({}),
+  },
+  _procId: {
+    type: String,
+    default: null
   }
+});
+
+onMounted(() => {
+  updateIzvorPonor();
+  saveEvent();
 });
 
 // Emits
@@ -19,6 +28,72 @@ const emit = defineEmits(["save"]);
 
 // Reactive local copy
 const localEvent = reactive({ ...props.event });
+
+const fromProceses = computed(() => {
+  if (!props.systemGraph) return [];
+
+  const connected = props.systemGraph.channels
+    .map(x => {
+      if (x.proces1.id === props._procId) {
+        return { 
+          id: x.proces2.id, 
+          label: props.systemGraph.processes.find(proc => proc.id === x.proces2.id)?.label 
+        };
+      } else if (x.proces2.id === props._procId) {
+        return { 
+          id: x.proces1.id, 
+          label: props.systemGraph.processes.find(proc => proc.id === x.proces1.id)?.label 
+        };
+      }
+      return undefined;
+    })
+    .filter(Boolean); // remove undefined
+
+  // add myself
+  const self = props.systemGraph.processes.find(proc => proc.id === props._procId);
+  if (self) connected.push({ id: self.id, label: self.label });
+
+  connected.sort((a, b) => {
+  if (a.id < b.id) return -1;
+  if (a.id > b.id) return 1;
+  return 0;
+});
+
+  return connected;
+});
+
+const toProceses = computed(() => {
+  if (!props.systemGraph) return [];
+
+  const connected = props.systemGraph.channels
+    .map(x => {
+      if (x.proces1.id === props._procId) {
+        return { 
+          id: x.proces2.id, 
+          label: props.systemGraph.processes.find(proc => proc.id === x.proces2.id)?.label 
+        };
+      } else if (x.proces2.id === props._procId) {
+        return { 
+          id: x.proces1.id, 
+          label: props.systemGraph.processes.find(proc => proc.id === x.proces1.id)?.label 
+        };
+      }
+      return undefined;
+    })
+    .filter(Boolean); // remove undefined
+
+  // add myself
+  const self = props.systemGraph.processes.find(proc => proc.id === props._procId);
+  if (self) connected.push({ id: self.id, label: self.label });
+
+  connected.sort((a, b) => {
+  if (a.id < b.id) return -1;
+  if (a.id > b.id) return 1;
+  return 0;
+});
+
+  return connected;
+});
 
 // watch for prop changes
 watch(
@@ -46,20 +121,21 @@ function deleteEvent() {
 }
 
 function updateIzvorPonor() {
-  const parent_proces = localEvent.parent_proces
-  const found = props.proceses.find(x => x.id == parent_proces);
+  const self = props.systemGraph.processes.find(x => x.id == props._procId);
 
-  if (!found) {
-    return;
-  }
+  if (!self) return;
 
-  if (localEvent.type == "spr") {
-    localEvent.to_process = found.id;
-  } else if (localEvent.type == "odd") {
-    localEvent.from_process = found.id;
-  } else if (localEvent.type == "lok") {
-    localEvent.from_process = found.id;
-    localEvent.to_process = found.id;
+  if (localEvent.type === "spr") {
+    const from = fromProceses.value.find(p => p.id !== self.id) || self;
+    localEvent.from_process = from.id;
+    localEvent.to_process = self.id;
+  } else if (localEvent.type === "odd") {
+    const to = toProceses.value.find(p => p.id !== self.id) || self;
+    localEvent.from_process = self.id;
+    localEvent.to_process = to.id;
+  } else if (localEvent.type === "lok") {
+    localEvent.from_process = self.id;
+    localEvent.to_process = self.id;
   }
 }
 </script>
@@ -88,21 +164,21 @@ function updateIzvorPonor() {
       <option value="spr">Sprejemni (+)</option>
       <option value="odd">Oddajni (-)</option>
       <option value="lok">Lokalni (#)</option>
-      <option value="tra">Transparenti</option>
+      <option value="tra">Transparentni</option>
     </select>
     </div>
 
     <div class="mb-2">
       <label class="form-label">Izvorni proces</label>
     <select class="form-select" v-model="localEvent.from_process" :disabled="localEvent.type == 'odd' || localEvent.type == 'lok'">
-      <option :value="p.id" v-for="p in proceses">{{ p.label }}</option>
+      <option :value="p.id" v-for="p in fromProceses">{{ p.label }}</option>
     </select>
     </div>
 
     <div class="mb-2">
       <label class="form-label">Ponorni proces</label>
     <select class="form-select" v-model="localEvent.to_process" :disabled="localEvent.type == 'spr' || localEvent.type == 'lok'">
-      <option :value="p.id" v-for="p in proceses">{{ p.label }}</option>
+      <option :value="p.id" v-for="p in toProceses">{{ p.label }}</option>
     </select>
     </div>
       

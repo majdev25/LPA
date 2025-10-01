@@ -5,30 +5,28 @@ import System from "./components/System.vue";
 
 import { computed } from "vue";
 
-const procesGraph = computed(() => systemGraph?.value?.proces?.procesGraph);
-const procesesList = computed(() => systemGraph?.value?.processes);
-const procesId = computed(() => systemGraph?.value?.proces?.id);
+const procesGraph = computed(() => data?.value?.proces?.procesGraph);
+const systemGraph = computed(() => data?.value?.systemGraph);
+const procesId = computed(() => data?.value?.proces?.id);
 
 var winType = ref(null);
-var systemGraph = ref(null);
+var data = ref(null);
 
 onMounted(() => {
   window.api.on("win-type", (data) => {
     winType.value = data;
   });
 
-  window.api.on("win-data", (data) => {
-    console.log(data);
-    systemGraph.value = data;
-    console.log(systemGraph.value);
+  window.api.on("win-data", (newData) => {
+    data.value = newData;
   });
 });
 </script>
 <template>
   <Proces
-    v-if="winType === 'proces' && systemGraph"
+    v-if="winType === 'proces' && data"
     :_graph="procesGraph"
-    :_proceses="procesesList"
+    :_systemGraph="systemGraph"
     :_id="procesId"
   />
   <System v-else-if="winType == 'system'" />

@@ -1,5 +1,5 @@
 <script setup>
-import { onMounted, ref, reactive, onUnmounted } from "vue";
+import { onMounted, ref, reactive, onUnmounted, watch, computed } from "vue";
 import * as d3 from "d3";
 import { GraphRenderer } from "./ProcesComponents/ProcesGraphRenderer.js";
 import State from "./ProcesComponents/State.vue";
@@ -10,7 +10,7 @@ const selectedStateId = ref(null);
 const selectedEventId = ref(null);
 
 const props = defineProps({
-  _proceses: {
+  _systemGraph: {
     type: Array,
     default: () => [
       { label: "p0", id: "p0" },
@@ -22,23 +22,54 @@ const props = defineProps({
     default: () => ({
       states: [],
       events: [],
-      id: "p0",
     }),
   },
   _id: null,
 });
 const graph = reactive({ ...props._graph });
-const proceses = reactive([...props._proceses]);
+const systemGraph = reactive({ ...props._systemGraph });
 
 const mode = ref({ addState: true, addEvent: false });
 
-let nextStateId = 0;
-let nextEventId = 0;
+watch(
+  () => graph,
+  async (newGraph) => {
+    try {
+      const result = await window.api.invoke("update-proces", {
+        data: JSON.stringify({
+          procesGraph: newGraph,
+          id: props._id,
+        }),
+      });
+      console.log("Proces updated:", result);
+    } catch (err) {
+      console.error("Failed to update graph:", err);
+    }
+  },
+  { deep: true }
+);
+
+const procesName = computed(() => {
+  console.log(systemGraph);
+  return systemGraph.processes?.find((x) => x.id == props._id).label;
+});
+
 function genStateId() {
-  return `s${nextStateId++}`;
+  const ids = graph.states.map((s) => parseInt(s.id.slice(1), 10));
+  let next = 0;
+  while (ids.includes(next)) {
+    next++;
+  }
+  return `s${next}`;
 }
+
 function genEventId() {
-  return `d${nextEventId++}`;
+  const ids = graph.events.map((e) => parseInt(e.id.slice(1), 10));
+  let next = 0;
+  while (ids.includes(next)) {
+    next++;
+  }
+  return `d${next}`;
 }
 
 function getState(id) {
@@ -119,9 +150,8 @@ function addEvent(fromId, toId) {
     type: "spr",
     from_process: "p0",
     to_process: "p0",
-    parent_proces: props._id,
-    renderEventName,
   });
+  selectedEventId.value = id;
   renderer.render();
 }
 
@@ -235,6 +265,7 @@ onMounted(() => {
     selectedEventId,
     handleStateClick,
     handleEventClick,
+    renderEventName,
   });
 
   renderer.render();
@@ -255,7 +286,8 @@ onMounted(() => {
     >
       <div>
         <div class="fs-sm fw-bold ms-2">
-          Proces {{ proceses.find((x) => x.id == props._id).label }}
+          Proces
+          {{ procesName }}
         </div>
         <div class="d-flex align-items-center">
           <div
@@ -307,7 +339,8 @@ onMounted(() => {
         <Event
           v-else-if="selectedEventId != null"
           :event="getEvent(selectedEventId)"
-          :proceses="_proceses"
+          :systemGraph="systemGraph"
+          :_procId="_id"
           @save="updateEvent"
           @delete="() => deleteEvent(selectedEventId)"
         />

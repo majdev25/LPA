@@ -281,7 +281,7 @@ onMounted(() => {
             @click="toggleAddChannel"
           >
             <FontAwesomeIcon :icon="['fa', 'bullhorn']" class="me-1" />
-            Dodaj dogodek
+            Dodaj kanal
           </div>
         </div>
       </div>
