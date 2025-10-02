@@ -29,7 +29,7 @@ function createWindow(type, data, id) {
 
   win.webContents.on("did-finish-load", () => {
     win.webContents.send("win-type", type);
-    console.log(data);
+    win.webContents.send("win-id", id);
     win.webContents.send("win-data", data);
   });
 
@@ -44,7 +44,7 @@ function createWindow(type, data, id) {
 app.whenReady().then(() => {
   createWindow("system", null, "root");
 
-  const dep = { createWindow };
+  const dep = { createWindow, windows };
   registerIpcHandlers(dep); // register IPC once app is ready
 });
 

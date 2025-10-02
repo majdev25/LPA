@@ -1,33 +1,40 @@
 <script setup>
-import { ref, reactive, onMounted } from "vue";
+import { ref, onMounted } from "vue";
 import Proces from "./components/Proces.vue";
 import System from "./components/System.vue";
 
-import { computed } from "vue";
-
-const procesGraph = computed(() => data?.value?.proces?.procesGraph);
-const systemGraph = computed(() => data?.value?.systemGraph);
-const procesId = computed(() => data?.value?.proces?.id);
-
 var winType = ref(null);
 var data = ref(null);
+var id = ref(null);
+
+var systemGraphVar = null; // will hold calculated systemGraph
 
 onMounted(() => {
-  window.api.on("win-type", (data) => {
-    winType.value = data;
+  window.api.on("win-type", (newWinType) => {
+    winType.value = newWinType;
+  });
+
+  window.api.on("win-id", (newId) => {
+    id.value = newId;
   });
 
   window.api.on("win-data", (newData) => {
     data.value = newData;
+
+    console.log("[APP] win-data " + id.value, newData);
+
+    if (winType.value == "proces") {
+      systemGraphVar = data.value.systemGraph;
+    }
   });
 });
 </script>
+
 <template>
   <Proces
     v-if="winType === 'proces' && data"
-    :_graph="procesGraph"
-    :_systemGraph="systemGraph"
-    :_id="procesId"
+    :_systemGraph="systemGraphVar"
+    :_id="id"
   />
   <System v-else-if="winType == 'system'" />
 </template>

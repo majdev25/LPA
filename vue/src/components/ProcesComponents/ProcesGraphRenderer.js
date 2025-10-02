@@ -9,6 +9,16 @@ export class GraphRenderer {
     this.renderEventName = null;
   }
 
+  scheduleRender() {
+    if (!this.renderScheduled) {
+      this.renderScheduled = true;
+      requestAnimationFrame(() => {
+        this.render();
+        this.renderScheduled = false;
+      });
+    }
+  }
+
   init({
     svg,
     graph,
@@ -71,7 +81,7 @@ export class GraphRenderer {
     const drag = this.d3.drag().on("drag", (event, d) => {
       d.x = event.x;
       d.y = event.y;
-      this.render();
+      this.scheduleRender();
     });
 
     const groups = svg
@@ -268,7 +278,7 @@ export class GraphRenderer {
             this.d3.drag().on("drag", (event) => {
               ctrl.x = event.x;
               ctrl.y = event.y;
-              this.render();
+              this.scheduleRender();
             })
           );
       }

@@ -20,18 +20,21 @@ const mode = ref({ addProces: true, addChannel: false });
 
 watch(
   () => graph,
-  async (newGraph) => {
+  async () => {
+  },
+  { deep: true }
+);
+
+async function saveGraph(){
     try {
       const result = await window.api.invoke("update-system", {
-        graph: JSON.stringify(newGraph),
+        graph: JSON.stringify(graph),
       });
       console.log("Graph updated:", result);
     } catch (err) {
       console.error("Failed to update graph:", err);
     }
-  },
-  { deep: true }
-);
+  }
 
 let nextProcesId = 0;
 let nextChannelId = 0;
@@ -55,6 +58,7 @@ function updateProces(data) {
     graph.processes[index].label = data.label;
   }
   renderer.render();
+    saveGraph();
 }
 
 function deleteProces(id) {
@@ -66,6 +70,7 @@ function deleteProces(id) {
     selectedChannelId.value = null;
     graph.channels = graph.channels.filter((e) => e.from !== id && e.to !== id);
     renderer.render();
+        saveGraph();
   }
 }
 
@@ -87,6 +92,7 @@ function addProces(x, y) {
   });
   selectedProcesId.value = id;
   renderer.render();
+      saveGraph();
 }
 
 function addChannel(fromId, toId) {
@@ -135,6 +141,7 @@ function addChannel(fromId, toId) {
     renderChannelName,
   });
   renderer.render();
+  saveGraph();
 }
 
 
@@ -150,6 +157,7 @@ function updateChannel(data) {
     graph.channels[index].proces2 = data.proces2;
   }
   renderer.render();
+      saveGraph();
 }
 
 function deleteChannel(id) {
@@ -159,6 +167,7 @@ function deleteChannel(id) {
     renderer.render();
   }
   selectedChannelId.value = null;
+      saveGraph();
 }
 
 const renderer = new GraphRenderer();

@@ -12,45 +12,69 @@ const selectedEventId = ref(null);
 const props = defineProps({
   _systemGraph: {
     type: Array,
-    default: () => [
-      { label: "p0", id: "p0" },
-      { label: "p1", id: "p1" },
-    ],
-  },
-  _graph: {
-    type: Object,
-    default: () => ({
-      states: [],
-      events: [],
-    }),
+    default: () => {},
   },
   _id: null,
 });
-const graph = reactive({ ...props._graph });
+const graph = { states: [], events: [] };
 const systemGraph = reactive({ ...props._systemGraph });
 
-const mode = ref({ addState: true, addEvent: false });
+const lastUpdateId = ref(null);
 
 watch(
-  () => graph,
-  async (newGraph) => {
-    try {
-      const result = await window.api.invoke("update-proces", {
-        data: JSON.stringify({
-          procesGraph: newGraph,
-          id: props._id,
-        }),
-      });
-      console.log("Proces updated:", result);
-    } catch (err) {
-      console.error("Failed to update graph:", err);
-    }
+  () => props._systemGraph._updateId,
+  (newGraph) => {
+    console.log("[PROCES] _systemGraph change: ", props._systemGraph);
+    setVars();
+    renderer.render();
   },
   { deep: true }
 );
 
+const mode = ref({ addState: true, addEvent: false });
+
+function setVars() {
+  console.log("[PROCES] setting variables");
+  console.log(props._systemGraph._updateId, lastUpdateId.value);
+  if (
+    props._systemGraph._updateId &&
+    props._systemGraph._updateId === lastUpdateId.value
+  ) {
+    console.log("[PROCES] skipping setting variables");
+    return;
+  }
+  Object.keys(systemGraph).forEach((key) => delete graph[key]);
+  Object.assign(systemGraph, props._systemGraph);
+
+  var g = systemGraph.processes?.find((x) => x.id === props._id)?.procesGraph;
+  if (g == undefined || g == null) {
+    console.log("[PROCES] creating empty graph");
+    g = { states: [], events: [] };
+  }
+  graph.states = [...g.states];
+  graph.events = [...g.events];
+}
+
+async function saveGraph() {
+  console.log("[PROCES] sending copy of graph");
+
+  // updateId
+  let _updateId = Math.random().toString(36).slice(2);
+
+  // remember it locally so we can detect echoes
+  lastUpdateId.value = _updateId;
+
+  // send to backend
+  await window.api.invoke("update-proces", {
+    data: JSON.stringify({
+      procesGraph: graph,
+      id: props._id,
+      _updateId,
+    }),
+  });
+}
+
 const procesName = computed(() => {
-  console.log(systemGraph);
   return systemGraph.processes?.find((x) => x.id == props._id).label;
 });
 
@@ -85,6 +109,7 @@ function updateState(data) {
     graph.states[index] = data;
   }
   renderer.render();
+  saveGraph();
 }
 
 function deleteState(id) {
@@ -96,6 +121,7 @@ function deleteState(id) {
     selectedStateId.value = -1;
     renderer.render();
   }
+  saveGraph();
 }
 
 function globalClick({ x, y }) {
@@ -106,17 +132,22 @@ function globalClick({ x, y }) {
 
 function addState(x, y) {
   let id = genStateId();
+  let isStart = false;
+  if (graph.states.length < 1) {
+    isStart = true;
+  }
   graph.states.push({
     id,
     x,
     y,
     r: 15,
     label: id,
-    isStart: false,
+    isStart,
     parent_proces: props._id,
   });
   selectedStateId.value = id;
   renderer.render();
+  saveGraph();
 }
 
 function addEvent(fromId, toId) {
@@ -153,6 +184,7 @@ function addEvent(fromId, toId) {
   });
   selectedEventId.value = id;
   renderer.render();
+  saveGraph();
 }
 
 function renderEventName(event) {
@@ -176,15 +208,16 @@ function updateEvent(data) {
     graph.events[index] = data;
   }
   renderer.render();
+  saveGraph();
 }
 
 function deleteEvent(id) {
-  console.log(id);
   const eventIndex = graph.events.findIndex((c) => c.id === id);
   if (eventIndex !== -1) {
     graph.events.splice(eventIndex, 1);
     renderer.render();
   }
+  saveGraph();
 }
 
 const renderer = new GraphRenderer();
@@ -228,6 +261,8 @@ function handleEventClick(event, i) {
 
 onMounted(() => {
   const container = d3Container.value;
+
+  setVars();
 
   // Create SVG to match container size
   const svg = d3
@@ -275,6 +310,7 @@ onMounted(() => {
 });
 </script>
 <template>
+  {{ systemGraph.channels }}
   <div
     class="d-flex flex-column"
     style="height: 100vh; width: 100vw; overflow: hidden"

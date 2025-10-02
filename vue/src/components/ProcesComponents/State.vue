@@ -1,6 +1,6 @@
 <script setup>
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
-import { reactive, watch } from "vue";
+import { reactive, watch, defineEmits } from "vue";
 
 // Props
 const props = defineProps({
@@ -9,9 +9,6 @@ const props = defineProps({
     default: () => ({}),
   },
 });
-
-// Emits
-const emit = defineEmits(["save"]);
 
 // Reactive local copy
 const localState = reactive({ ...props.state });
@@ -24,6 +21,9 @@ watch(
   },
   { deep: true }
 );
+
+// Emits
+const emit = defineEmits(["save", "delete"]);
 
 // Save function
 function saveState() {

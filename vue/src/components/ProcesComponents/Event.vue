@@ -1,6 +1,6 @@
 <script setup>
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
-import { computed, reactive, watch, onMounted } from "vue";
+import { computed, reactive, watch, onMounted, defineEmits } from "vue";
 
 // Props
 const props = defineProps({
@@ -23,16 +23,16 @@ onMounted(() => {
   saveEvent();
 });
 
-// Emits
-const emit = defineEmits(["save"]);
-
 // Reactive local copy
 const localEvent = reactive({ ...props.event });
 
 const fromProceses = computed(() => {
   if (!props.systemGraph) return [];
 
-  const connected = props.systemGraph.channels
+  var connected = []
+  if(props.systemGraph.channels){
+
+    connected = props.systemGraph.channels
     .map(x => {
       if (x.proces1.id === props._procId) {
         return { 
@@ -48,7 +48,10 @@ const fromProceses = computed(() => {
       return undefined;
     })
     .filter(Boolean); // remove undefined
+  }
 
+  console.log(props.systemGraph);
+  console.log(props.systemGraph.processes);
   // add myself
   const self = props.systemGraph.processes.find(proc => proc.id === props._procId);
   if (self) connected.push({ id: self.id, label: self.label });
@@ -65,22 +68,26 @@ const fromProceses = computed(() => {
 const toProceses = computed(() => {
   if (!props.systemGraph) return [];
 
-  const connected = props.systemGraph.channels
-    .map(x => {
-      if (x.proces1.id === props._procId) {
-        return { 
-          id: x.proces2.id, 
-          label: props.systemGraph.processes.find(proc => proc.id === x.proces2.id)?.label 
-        };
-      } else if (x.proces2.id === props._procId) {
-        return { 
-          id: x.proces1.id, 
-          label: props.systemGraph.processes.find(proc => proc.id === x.proces1.id)?.label 
-        };
-      }
-      return undefined;
-    })
-    .filter(Boolean); // remove undefined
+  var connected = []
+  if(props.systemGraph.channels){
+
+    connected = props.systemGraph.channels
+      .map(x => {
+        if (x.proces1.id === props._procId) {
+          return { 
+            id: x.proces2.id, 
+            label: props.systemGraph.processes.find(proc => proc.id === x.proces2.id)?.label 
+          };
+        } else if (x.proces2.id === props._procId) {
+          return { 
+            id: x.proces1.id, 
+            label: props.systemGraph.processes.find(proc => proc.id === x.proces1.id)?.label 
+          };
+        }
+        return undefined;
+      })
+      .filter(Boolean); // remove undefined
+  }
 
   // add myself
   const self = props.systemGraph.processes.find(proc => proc.id === props._procId);
@@ -111,6 +118,9 @@ watch(
   },
 );
 
+
+const emit = defineEmits(["save", "delete"]);
+
 // Save function
 function saveEvent() {
   emit("save", { ...localEvent });
@@ -121,27 +131,51 @@ function deleteEvent() {
 }
 
 function updateIzvorPonor() {
+  console.log("Making izvor ponor")
   const self = props.systemGraph.processes.find(x => x.id == props._procId);
-
   if (!self) return;
+
+  let fromProcessId = null;
+  let toProcessId = null;
 
   if (localEvent.type === "spr") {
     const from = fromProceses.value.find(p => p.id !== self.id) || self;
-    localEvent.from_process = from.id;
-    localEvent.to_process = self.id;
+    fromProcessId = from.id;
+    toProcessId = self.id;
   } else if (localEvent.type === "odd") {
     const to = toProceses.value.find(p => p.id !== self.id) || self;
-    localEvent.from_process = self.id;
-    localEvent.to_process = to.id;
+    fromProcessId = self.id;
+    toProcessId = to.id;
   } else if (localEvent.type === "lok") {
-    localEvent.from_process = self.id;
-    localEvent.to_process = self.id;
+    fromProcessId = self.id;
+    toProcessId = self.id;
+  }
+
+  localEvent.from_process = fromProcessId;
+  localEvent.to_process = toProcessId;
+
+  // Find a channel connecting these processes
+  const channel = props.systemGraph.channels.find(
+    (c) =>
+      (c.proces1.id === fromProcessId && c.proces2.id === toProcessId) ||
+      (c.proces1.id === toProcessId && c.proces2.id === fromProcessId)
+  );
+
+  if (channel) {
+    localEvent.channel_id = channel.id;
+    console.log("Channel added")
+  } else {
+    console.warn(
+      `No channel found connecting ${fromProcessId} -> ${toProcessId}`
+    );
+    localEvent.channel_id = null;
   }
 }
 </script>
 
 <template>
-  <div class="d-flex flex-column justify-content-between w-100 flex-grow-1">
+{{ event }}
+<div class="d-flex flex-column justify-content-between w-100 flex-grow-1">
     <div v-if="props.event" class="d-flex flex-column gap-2 rounded">
       <div class="fs-5 fw-bold text-black">
         <FontAwesomeIcon :icon="['fa', 'arrow-right']" /> Dogodek
