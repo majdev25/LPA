@@ -28,7 +28,6 @@ function registerIpcHandlers({ createWindow, windows }) {
     // Channels: shallow copy of the array
     systemGraph.channels = [...graph.channels];
     systemGraph._updateId = Math.random().toString(36).slice(2);
-    console.log(systemGraph);
 
     fixGraph();
 

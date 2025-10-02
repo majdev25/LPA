@@ -123,6 +123,7 @@ const emit = defineEmits(["save", "delete"]);
 
 // Save function
 function saveEvent() {
+  console.log("[EVENT] saving")
   emit("save", { ...localEvent });
 }
 
@@ -131,7 +132,7 @@ function deleteEvent() {
 }
 
 function updateIzvorPonor() {
-  console.log("Making izvor ponor")
+  console.log("[EVENT]Making izvor ponor")
   const self = props.systemGraph.processes.find(x => x.id == props._procId);
   if (!self) return;
 
@@ -151,8 +152,13 @@ function updateIzvorPonor() {
     toProcessId = self.id;
   }
 
+  console.log(fromProcessId);
+
+
   localEvent.from_process = fromProcessId;
   localEvent.to_process = toProcessId;
+
+  console.log({ ...localEvent });
 
   // Find a channel connecting these processes
   const channel = props.systemGraph.channels.find(
@@ -170,11 +176,12 @@ function updateIzvorPonor() {
     );
     localEvent.channel_id = null;
   }
+
+  console.log({ ...localEvent });
 }
 </script>
 
 <template>
-{{ event }}
 <div class="d-flex flex-column justify-content-between w-100 flex-grow-1">
     <div v-if="props.event" class="d-flex flex-column gap-2 rounded">
       <div class="fs-5 fw-bold text-black">

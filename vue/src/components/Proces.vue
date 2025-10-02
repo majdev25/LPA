@@ -64,6 +64,8 @@ async function saveGraph() {
   // remember it locally so we can detect echoes
   lastUpdateId.value = _updateId;
 
+  console.log(graph.events);
+
   // send to backend
   await window.api.invoke("update-proces", {
     data: JSON.stringify({
@@ -179,12 +181,11 @@ function addEvent(fromId, toId) {
     ctrl,
     label: id,
     type: "spr",
-    from_process: "p0",
-    to_process: "p0",
+    from_process: null,
+    to_process: null,
   });
   selectedEventId.value = id;
   renderer.render();
-  saveGraph();
 }
 
 function renderEventName(event) {
@@ -203,10 +204,12 @@ function renderEventName(event) {
 }
 
 function updateEvent(data) {
+  console.log("update", data);
   const index = graph.events.findIndex((c) => c.id === selectedEventId.value);
   if (index !== -1) {
     graph.events[index] = data;
   }
+  console.log(graph.events);
   renderer.render();
   saveGraph();
 }
@@ -310,7 +313,6 @@ onMounted(() => {
 });
 </script>
 <template>
-  {{ systemGraph.channels }}
   <div
     class="d-flex flex-column"
     style="height: 100vh; width: 100vw; overflow: hidden"
