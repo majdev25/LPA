@@ -322,8 +322,15 @@ onMounted(() => {
           @save="updateChannel"
           @delete="() => deleteChannel(selectedChannelId)"
         />
-        <div v-else class="bg-light p-3 text-gray">
-          Izberite stanje ali dogodek za prikaz podrobnosti.
+        <div v-else class="bg-light p-3 text-gray d-flex gap-2 flex-column">
+          <div>Izberite stanje ali dogodek za prikaz podrobnosti.</div>
+          <div v-if="mode.addProces">
+            <b>Dodaj proces.</b> Z levim klikom na belo polje dodajte nov proces.
+          </div>
+          <div v-if="mode.addChannel">
+            <b>Dodaj kanal.</b> Z levim klikom najprej na en proces, nato na
+            drug, ustvarite nov kanal.
+          </div>
         </div>
       </div>
     </div>

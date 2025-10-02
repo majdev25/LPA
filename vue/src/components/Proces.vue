@@ -382,8 +382,16 @@ onMounted(() => {
           @save="updateEvent"
           @delete="() => deleteEvent(selectedEventId)"
         />
-        <div v-else class="bg-light p-3 text-gray">
-          Izberite stanje ali dogodek za prikaz podrobnosti.
+        <div v-else class="bg-light p-3 text-gray d-flex gap-2 flex-column">
+          <div>Izberite proces ali kanal za prikaz podrobnosti.</div>
+          <div v-if="mode.addState">
+            <b>Dodaj stanje.</b> Z levim klikom na belo polje dodajte novo
+            stanje.
+          </div>
+          <div v-if="mode.addEvent">
+            <b>Dodaj stanje.</b> Z levim klikom najprej na eno stanje, nato na
+            drugo, ustvarite nov dogodek.
+          </div>
         </div>
       </div>
     </div>
