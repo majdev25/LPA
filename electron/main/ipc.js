@@ -1,4 +1,6 @@
-const { ipcMain } = require("electron");
+const { channel } = require("diagnostics_channel");
+const { ipcMain, dialog } = require("electron");
+const fs = require("fs");
 
 var systemGraph = {};
 
@@ -79,6 +81,93 @@ function registerIpcHandlers({ createWindow, windows }) {
       return true;
     } catch (err) {
       console.error("[update-system] Error updating system graph:", err);
+      return false;
+    }
+  });
+
+  ipcMain.handle("save-systemGraph", async (event, {}) => {
+    try {
+      // Ask user for file path to save
+      const { canceled, filePath } = await dialog.showSaveDialog({
+        title: "Save System Graph",
+        defaultPath: "systemGraph.json",
+        filters: [{ name: "JSON Files", extensions: ["json"] }],
+      });
+
+      if (canceled || !filePath) {
+        return false; // user canceled
+      }
+
+      // Save the object as JSON
+      fs.writeFileSync(filePath, JSON.stringify(systemGraph, null, 2), "utf-8");
+
+      return true; // success
+    } catch (err) {
+      console.error("[save-systemGraph] Error saving system graph:", err);
+      return false;
+    }
+  });
+
+  ipcMain.handle("start-pgss", async (event, {}) => {
+    try {
+      // Ask user for file path to save
+      const { canceled, filePath } = await dialog.showSaveDialog({
+        title: "Save System Graph",
+        defaultPath: "systemGraph.json",
+        filters: [{ name: "JSON Files", extensions: ["json"] }],
+      });
+
+      if (canceled || !filePath) {
+        return false; // user canceled
+      }
+
+      var clean_graph = structuredClone(systemGraph);
+
+      //processes
+      clean_graph.processes = clean_graph.processes.map((p) => {
+        return {
+          id: p.id,
+          label: p.label,
+          procesGraph: {
+            id: p.procesGraph.id,
+            states: p.procesGraph.states.map((s) => {
+              return {
+                id: s.id,
+                label: s.label,
+                isStart: s.isStart,
+                parent_proces: s.parent_proces,
+              };
+            }),
+            events: p.procesGraph.events.map((e) => {
+              return {
+                id: e.id,
+                label: e.label,
+                type: e.type,
+                from: e.from,
+                to: e.to,
+                from_proces: e.from_proces,
+                to_proces: e.to_proces,
+                channel_id: e.channel_id,
+              };
+            }),
+          },
+        };
+      });
+
+      clean_graph.channels = clean_graph.channels.map((c) => {
+        return {
+          id: c.id,
+          proces1: { id: c.proces1.id, q_length: c.proces1.q_length },
+          proces2: { id: c.proces2.id, q_length: c.proces2.q_length },
+        };
+      });
+
+      // Save the object as JSON
+      fs.writeFileSync(filePath, JSON.stringify(clean_graph, null, 2), "utf-8");
+
+      return true; // success
+    } catch (err) {
+      console.error("[save-systemGraph] Error saving system graph:", err);
       return false;
     }
   });

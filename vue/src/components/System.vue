@@ -25,7 +25,7 @@ watch(
   { deep: true }
 );
 
-async function saveGraph(){
+async function updateGraph(){
     try {
       const result = await window.api.invoke("update-system", {
         graph: JSON.stringify(graph),
@@ -35,6 +35,24 @@ async function saveGraph(){
       console.error("Failed to update graph:", err);
     }
   }
+
+async function saveGraphToFile(){
+    await updateGraph();
+    try {
+        const result = await window.api.invoke("save-systemGraph", {});
+    } catch (err) {
+        console.error("Failed to update graph:", err);
+    }
+}
+
+async function startPgss(){
+    await updateGraph();
+    try {
+        const result = await window.api.invoke("start-pgss", {});
+    } catch (err) {
+        console.error("Failed to update graph:", err);
+    }
+}
 
 let nextProcesId = 0;
 let nextChannelId = 0;
@@ -58,7 +76,7 @@ function updateProces(data) {
     graph.processes[index].label = data.label;
   }
   renderer.render();
-    saveGraph();
+    updateGraph();
 }
 
 function deleteProces(id) {
@@ -70,7 +88,7 @@ function deleteProces(id) {
     selectedChannelId.value = null;
     graph.channels = graph.channels.filter((e) => e.from !== id && e.to !== id);
     renderer.render();
-        saveGraph();
+        updateGraph();
   }
 }
 
@@ -92,7 +110,7 @@ function addProces(x, y) {
   });
   selectedProcesId.value = id;
   renderer.render();
-      saveGraph();
+      updateGraph();
 }
 
 function addChannel(fromId, toId) {
@@ -141,7 +159,7 @@ function addChannel(fromId, toId) {
     renderChannelName,
   });
   renderer.render();
-  saveGraph();
+  updateGraph();
 }
 
 
@@ -157,7 +175,7 @@ function updateChannel(data) {
     graph.channels[index].proces2 = data.proces2;
   }
   renderer.render();
-      saveGraph();
+      updateGraph();
 }
 
 function deleteChannel(id) {
@@ -167,7 +185,7 @@ function deleteChannel(id) {
     renderer.render();
   }
   selectedChannelId.value = null;
-      saveGraph();
+      updateGraph();
 }
 
 const renderer = new GraphRenderer();
@@ -291,6 +309,20 @@ onMounted(() => {
           >
             <FontAwesomeIcon :icon="['fa', 'bullhorn']" class="me-1" />
             Dodaj kanal
+          </div>
+          <div
+            class="d-flex align-items-center me-2 cursor-pointer fs-6 text-tight text-sm _badge hover-bg-light text-gray"
+            @click="saveGraphToFile"
+          >
+            <FontAwesomeIcon :icon="['fa', 'bullhorn']" class="me-1" />
+            Shrani sistem
+          </div>
+          <div
+            class="d-flex align-items-center me-2 cursor-pointer fs-6 text-tight text-sm _badge hover-bg-light text-gray"
+            @click="startPgss"
+          >
+            <FontAwesomeIcon :icon="['fa', 'bullhorn']" class="me-1" />
+            Start pgss
           </div>
         </div>
       </div>

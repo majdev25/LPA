@@ -181,8 +181,8 @@ function addEvent(fromId, toId) {
     ctrl,
     label: id,
     type: "spr",
-    from_process: null,
-    to_process: null,
+    from_proces: null,
+    to_proces: null,
   });
   selectedEventId.value = id;
   renderer.render();
@@ -191,15 +191,13 @@ function addEvent(fromId, toId) {
 function renderEventName(event) {
   // use edge.type and edge.label directly
   if (event.type === "spr") {
-    return "+" + event.label + "(" + event.from_process + ")";
+    return "+" + event.label + "(" + event.from_proces + ")";
   } else if (event.type === "odd") {
-    return "-" + event.label + "(" + event.to_process + ")";
+    return "-" + event.label + "(" + event.to_proces + ")";
   } else if (event.type === "lok") {
     return "#" + event.label;
   } else if (event.type === "tra") {
-    return (
-      event.label + "(" + event.from_process + "," + event.to_process + ")"
-    );
+    return event.label + "(" + event.from_proces + "," + event.to_proces + ")";
   }
 }
 

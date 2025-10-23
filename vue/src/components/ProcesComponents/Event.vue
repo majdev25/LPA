@@ -123,6 +123,7 @@ const emit = defineEmits(["save", "delete"]);
 
 // Save function
 function saveEvent() {
+  updateChannel();
   console.log("[EVENT] saving")
   emit("save", { ...localEvent });
 }
@@ -155,24 +156,28 @@ function updateIzvorPonor() {
   console.log(fromProcessId);
 
 
-  localEvent.from_process = fromProcessId;
-  localEvent.to_process = toProcessId;
+  localEvent.from_proces = fromProcessId;
+  localEvent.to_proces = toProcessId;
 
   console.log({ ...localEvent });
+  updateChannel();
+}
 
-  // Find a channel connecting these processes
+function updateChannel(){
+ // Find a channel connecting these processes
+ console.log("[EVENT] Updaing channel")
   const channel = props.systemGraph.channels.find(
     (c) =>
-      (c.proces1.id === fromProcessId && c.proces2.id === toProcessId) ||
-      (c.proces1.id === toProcessId && c.proces2.id === fromProcessId)
+      (c.proces1.id === localEvent.from_proces && c.proces2.id === localEvent.to_proces) ||
+      (c.proces1.id === localEvent.to_proces && c.proces2.id === localEvent.from_proces)
   );
 
   if (channel) {
     localEvent.channel_id = channel.id;
-    console.log("Channel added")
+    console.log("[EVENT] Channel added " + channel.id)
   } else {
     console.warn(
-      `No channel found connecting ${fromProcessId} -> ${toProcessId}`
+      `[EVENT] No channel found connecting ${localEvent.from_proces} -> ${localEvent.to_proces}`
     );
     localEvent.channel_id = null;
   }
@@ -211,14 +216,14 @@ function updateIzvorPonor() {
 
     <div class="mb-2">
       <label class="form-label">Izvorni proces</label>
-    <select class="form-select" v-model="localEvent.from_process" :disabled="localEvent.type == 'odd' || localEvent.type == 'lok'">
+    <select class="form-select" v-model="localEvent.from_proces" :disabled="localEvent.type == 'odd' || localEvent.type == 'lok'">
       <option :value="p.id" v-for="p in fromProceses">{{ p.label }}</option>
     </select>
     </div>
 
     <div class="mb-2">
       <label class="form-label">Ponorni proces</label>
-    <select class="form-select" v-model="localEvent.to_process" :disabled="localEvent.type == 'spr' || localEvent.type == 'lok'">
+    <select class="form-select" v-model="localEvent.to_proces" :disabled="localEvent.type == 'spr' || localEvent.type == 'lok'">
       <option :value="p.id" v-for="p in toProceses">{{ p.label }}</option>
     </select>
     </div>
