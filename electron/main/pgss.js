@@ -161,14 +161,19 @@ class MatrixCell {
 }
 
 let MATRIX_ID_COUNTER = 0;
+let MATRIX_RENDER_COUNTER = 0;
 
 class Matrix {
-  constructor(rows) {
+  constructor(rows, type = 0) {
     // Ustvari prazno matriko
     this.id = null;
+    this._id = "A" + MATRIX_RENDER_COUNTER++;
     this.rows = rows;
     this.data = [];
     this.children = [];
+    this.header = "";
+    this.type = type;
+    this.text = ""; //if type is 1
 
     this.data = [];
     for (let i = 0; i < this.rows; i++) {
@@ -227,6 +232,7 @@ class Matrix {
   }
 
   // vrne prvi element brez odstranitve
+  // za lažje branje iz procesa(row) v proces(col)
   peek(row, col) {
     const cell = this.data[row][col];
     if (!cell) return console.error("Cell is null");
@@ -317,9 +323,14 @@ let matrixs = [];
 
 // Rekurzivna funkcija, ki iterira po seznamu arrayov
 function matrixRek() {
+  // Vsaka matrika
   for (let i = 0; i < matrixs.length; i++) {
-    console.log("new matrix: " + i + "/" + matrixs.length);
+    console.log(
+      "--------- MATRIX: " + i + "/" + matrixs.length + " -----------"
+    );
+    matrixs[i].print();
     if (matrixs[i] instanceof Matrix) {
+      // Vsak proces
       for (let p = 0; p < M.rows; p++) {
         triggerProces(p, matrixs[i]);
       }
@@ -327,7 +338,11 @@ function matrixRek() {
   }
 }
 
-// Rekurzivna funkcija, ki sproži vse možne dogodke v procesu in generira nove matrike
+/**
+ * Rekurzivna funkcija, ki sproži vse možne dogodke v procesu in generira nove matrike
+ * @param {number} p - proces index
+ * @param {Matrix} m - matrika
+ */
 function triggerProces(p, m) {
   // vsi sprejemi
   simulateSprejemniDogodki(p, m);
@@ -335,6 +350,11 @@ function triggerProces(p, m) {
   simulateOddajniDogodki(p, m);
 }
 
+/**
+ * Vrne vse možne oddajne dogodke za proces p v stanju s
+ * @param {number} p - proces index
+ * @param {string} s - proces current status
+ */
 function getOddajniDogodkiZaProcesVStanju(p, s) {
   return systemGraph.processes[p].procesGraph.events.filter((e) => {
     if (e.type == "odd" && e.from == s) {
@@ -344,6 +364,11 @@ function getOddajniDogodkiZaProcesVStanju(p, s) {
   });
 }
 
+/**
+ * Vrne vse možne sprejemne dogodke za proces p v stanju s
+ * @param {number} p - proces index
+ * @param {string} s - proces current status
+ */
 function getSprejemniDogodkiZaProcesVStanju(p, s) {
   return systemGraph.processes[p].procesGraph.events.filter((e) => {
     if (e.type == "spr" && e.from == s) {
@@ -353,8 +378,43 @@ function getSprejemniDogodkiZaProcesVStanju(p, s) {
   });
 }
 
+/**
+ * Vrne vse možne sprejemne dogodke za proces p v stanju s
+ * @param {number} p_index - proces index
+ * @param {string} s - proces current status
+ * @param {string} p_id - proces id (kdo sprejema)
+ * @param {string} event - event label
+ */
+function getSprejemniDogodki(p_index, s, p_id, event) {
+  console.log("-------->NS: ", p_index, s, p_id, event);
+  return systemGraph.processes[p_index].procesGraph.events.filter((e) => {
+    console.log(e.type, "spr", e.from, s, e.label, event, e.to_proces, p_id);
+    if (
+      /*e.type == "spr" &&*/ // morda ni potrebno
+      e.from == s &&
+      e.label == event &&
+      e.from_proces == p_id
+    ) {
+      return true;
+    }
+    return false;
+  });
+}
+
+/**
+ * Vrne index procesa
+ * @param {string} p_id - proces id
+ */
 function getProcesIndex(p_id) {
   return systemGraph.processes.findIndex((p) => p.id === p_id);
+}
+
+/**
+ * Vrne id procesa
+ * @param {string} p_index - proces id
+ */
+function getProcesId(p_index) {
+  return systemGraph.processes[p_index].id;
 }
 
 function checkIfMatixEits(target) {
@@ -368,107 +428,195 @@ function checkIfMatixEits(target) {
   }
 }
 
+/**
+ * @param {number} p - proces index
+ * @param {Matrix} m - matrika
+ */
 function simulateOddajniDogodki(p, m) {
   let oddajniDogodki = getOddajniDogodkiZaProcesVStanju(p, m.peek(p, p));
 
+  // Simuliraj vsak možen oddajni dogodek
   oddajniDogodki.forEach((e) => {
     console.log("-----ODD------");
     console.log(p + "(" + e.id + ")");
-    let new_m = m.clone();
-    new_m.header =
-      e.from_proces + ":" + " -" + e.label + "(" + e.to_proces + ")";
 
-    let fromProcesIndex = getProcesIndex(e.from_proces);
-    let toProcesIndex = getProcesIndex(e.to_proces);
+    // Ustvari klon matrike
+    let new_m = m.clone();
+    // Pripravi možen nastanek matrike
+    let header = e.from_proces + ":" + " -" + e.label + "(" + e.to_proces + ")";
+
+    let row = getProcesIndex(e.from_proces);
+    let col = getProcesIndex(e.to_proces);
 
     // todo: check if possible to transmit - polna vrsta (ali obstaja kanal?)
-    if (m.getLen(toProcesIndex, fromProcesIndex) >= 2) {
+    if (m.getLen(col, row) >= 2) {
+      new_m = new Matrix();
+      new_m.type = 1;
+      new_m.text = "PV";
+      new_m.header = header;
+      m.children.push(new_m);
       console.log("PV");
       return;
     }
 
     // dodaj dogodek v vrsto
-    new_m.push(toProcesIndex, fromProcesIndex, e.label);
+    new_m.push(col, row, e.label);
 
     // popravi stanje procesa
-    new_m.setStanje(fromProcesIndex, fromProcesIndex, e.to);
+    new_m.setStanje(row, row, e.to);
 
+    // Preveri ali že obstaja enaka matrika
     let obstaja = M.contains(new_m);
 
-    // dodaj vejo
     if (obstaja != null) {
-      console.log(m.id + "->" + obstaja);
-      console.log(m.id + " obstaja");
-    } else {
-      new_m.createId();
+      // Matrika že obstaja
+      new_m = new Matrix();
+      new_m.type = 2;
+      new_m.text = obstaja;
+      new_m.header = header;
       m.children.push(new_m);
-      console.log(m.id + "->" + new_m.id);
-      new_m.print();
+    } else {
+      // Nova matrika
+      new_m.createId();
+      new_m.header = header;
+      m.children.push(new_m);
       matrixs.push(new_m);
     }
   });
 }
 
+/**
+ * @param {number} p - proces index
+ * @param {Matrix} m - matrika
+ */
 function simulateSprejemniDogodki(p, m) {
-  let oddajniDogodki = getSprejemniDogodkiZaProcesVStanju(p, m.peek(p, p));
+  let sprejemniDogodki = getSprejemniDogodkiZaProcesVStanju(p, m.peek(p, p));
 
-  oddajniDogodki.forEach((e) => {
+  // Simuliraj vsak možen sprejemni dogodek
+  sprejemniDogodki.forEach((e) => {
     console.log("-----SPR------");
     console.log(p + "(" + e.id + ")");
+
+    // Ustvari klon matrike
     let new_m = m.clone();
-    new_m.header =
-      e.from_proces + ":" + " +" + e.label + "(" + e.to_proces + ")";
+    // Pripravi možen nastanek matrike
+    let header = e.from_proces + ":" + " +" + e.label + "(" + e.to_proces + ")";
 
-    let fromProcesIndex = getProcesIndex(e.from_proces);
-    let toProcesIndex = getProcesIndex(e.to_proces);
+    let col = getProcesIndex(e.from_proces);
+    let row = getProcesIndex(e.to_proces);
 
-    if (m.peek(toProcesIndex, fromProcesIndex) == e.label) {
+    if (m.peek(row, col) == e.label) {
+      // v vrsti je pravi dogodek
       // odstrani dodgodek iz vrste
-      new_m.pop(toProcesIndex, fromProcesIndex);
+      new_m.pop(row, col);
       // popravi stanje procesa
-      new_m.setStanje(toProcesIndex, toProcesIndex, e.to);
+      new_m.setStanje(row, row, e.to);
+      nedefiniranoStanje = false;
     } else {
-      console.log(m.peek(toProcesIndex, fromProcesIndex), e.label);
-      m.print();
-      console.log("not valid");
+      // preskoči če v vrsti ni pravi dogodek
       return;
     }
 
+    // Preveri ali že obstaja enaka matrika
     let obstaja = M.contains(new_m);
 
-    // dodaj vejo
     if (obstaja != null) {
-      console.log(m.id + "->" + obstaja);
-      console.log(m.id + " obstaja");
-      m.children.push(obstaja);
-    } else {
-      new_m.createId();
+      // Matrika že obstaja
+      new_m = new Matrix();
+      new_m.type = 2;
+      new_m.text = obstaja;
+      new_m.header = header;
       m.children.push(new_m);
-      console.log(m.id + "->" + new_m.id);
-      new_m.print();
+    } else {
+      // Nova matrika
+      new_m.createId();
+      new_m.header = header;
+      m.children.push(new_m);
       matrixs.push(new_m);
+    }
+  });
+
+  // Preveri nedefinirana stanja
+
+  // Preveri za vsak proces
+  systemGraph.processes.forEach((proces2, p2_index) => {
+    let row = p;
+    let col = p2_index;
+
+    // preskoči sam sebe in če prazna vrsta
+    if (proces2.id == systemGraph.processes[p].id || m.peek(row, col) == null) {
+      return;
+    }
+
+    // Dodaj NS če proces ne zna sprejeti vhodni dogodek
+    if (
+      getSprejemniDogodki(p, m.peek(p, p), proces2.id, m.peek(row, col))
+        ?.length < 1
+    ) {
+      let header = getProcesId(p) + ":" + " +(" + getProcesId(p2_index) + ")";
+      new_m = new Matrix();
+      new_m.type = 1;
+      new_m.text = "NS";
+      new_m.header = header;
+      m.children.push(new_m);
     }
   });
 }
 
-// vstopna točka
+// Vstopna točka
 function main(systemGraph) {
   // Pripravi začetno matriko
   M = new Matrix(systemGraph.processes.length);
 
+  // Nastavi začetna stanja v matriki
   systemGraph.processes.forEach((p, i) => {
     const startState = p.procesGraph.states.find((s) => s.isStart).id;
     M.setStanje(i, i, startState);
   });
 
   M.createId();
-  M.header = "Root";
-  M.print();
-
+  M.header = "Začetek";
   matrixs.push(M);
+
   matrixRek();
 
-  console.log(JSON.stringify(M));
+  // Izpiši matriko
+  console.log(matrixTreeToDot(M));
 }
 
 main(systemGraph);
+
+function matrixTreeToDot(matrix) {
+  let dot = "digraph G {\n";
+
+  function traverse(m) {
+    if (!m) return;
+
+    // Use type-1 text for PV, otherwise header
+    const label =
+      m.type > 0 ? `${m.text}\\n${m.header}` : `Matrix ${m.id}\\n${m.header}`;
+    if (m.type > 0) {
+      dot += `  ${m._id} [label="${label}"];\n`;
+    } else {
+      dot += `  ${m.id} [label="${label}"];\n`;
+    }
+
+    // Ensure children is always an array
+    if (Array.isArray(m.children)) {
+      m.children.forEach((c) => {
+        if (c && typeof c.id !== "undefined") {
+          if (c.type > 0) {
+            dot += `  ${m.id} -> ${c._id};\n`;
+          } else {
+            dot += `  ${m.id} -> ${c.id};\n`;
+          }
+          traverse(c);
+        }
+      });
+    }
+  }
+
+  traverse(matrix);
+  dot += "}";
+  return dot;
+}
