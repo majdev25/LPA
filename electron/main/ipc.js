@@ -1,6 +1,7 @@
 const { channel } = require("diagnostics_channel");
 const { ipcMain, dialog } = require("electron");
 const fs = require("fs");
+const { simulate } = require("./pgss.js");
 
 var systemGraph = {};
 
@@ -163,7 +164,8 @@ function registerIpcHandlers({ createWindow, windows }) {
       });
 
       // Save the object as JSON
-      fs.writeFileSync(filePath, JSON.stringify(clean_graph, null, 2), "utf-8");
+      //fs.writeFileSync(filePath, JSON.stringify(clean_graph, null, 2), "utf-8");
+      fs.writeFileSync(filePath, simulate(clean_graph), "utf-8");
 
       return true; // success
     } catch (err) {
