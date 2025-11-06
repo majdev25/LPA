@@ -1,7 +1,7 @@
 // PGSS
 
 // graf sistema
-var systemGraph = {
+var systemGraph_old = {
   processes: [
     {
       id: "p0",
@@ -123,6 +123,183 @@ var systemGraph = {
     },
   ],
   _updateId: "zxy6e8g28z",
+};
+
+var systemGraph = {
+  processes: [
+    {
+      id: "p0",
+      label: "p0",
+      procesGraph: {
+        states: [
+          {
+            id: "s0",
+            label: "s0",
+            isStart: true,
+            parent_proces: "p0",
+          },
+          {
+            id: "s1",
+            label: "s1",
+            isStart: false,
+            parent_proces: "p0",
+          },
+          {
+            id: "s2",
+            label: "s2",
+            isStart: false,
+            parent_proces: "p0",
+          },
+          {
+            id: "s3",
+            label: "s3",
+            isStart: false,
+            parent_proces: "p0",
+          },
+        ],
+        events: [
+          {
+            id: "d0",
+            label: "a",
+            type: "odd",
+            from: "s0",
+            to: "s1",
+            from_proces: "p0",
+            to_proces: "p1",
+            channel_id: "c0",
+          },
+          {
+            id: "d1",
+            label: "b",
+            type: "spr",
+            from: "s1",
+            to: "s2",
+            from_proces: "p1",
+            to_proces: "p0",
+            channel_id: "c0",
+          },
+          {
+            id: "d2",
+            label: "c",
+            type: "odd",
+            from: "s2",
+            to: "s3",
+            from_proces: "p0",
+            to_proces: "p1",
+            channel_id: "c0",
+          },
+          {
+            id: "d3",
+            label: "d",
+            type: "lok",
+            from: "s3",
+            to: "s0",
+            from_proces: "p0",
+            to_proces: "p0",
+            channel_id: null,
+          },
+        ],
+      },
+    },
+    {
+      id: "p1",
+      label: "p1",
+      procesGraph: {
+        states: [
+          {
+            id: "s0",
+            label: "s0",
+            isStart: true,
+            parent_proces: "p1",
+          },
+          {
+            id: "s1",
+            label: "s1",
+            isStart: false,
+            parent_proces: "p1",
+          },
+          {
+            id: "s2",
+            label: "s2",
+            isStart: false,
+            parent_proces: "p1",
+          },
+          {
+            id: "s3",
+            label: "s3",
+            isStart: false,
+            parent_proces: "p1",
+          },
+        ],
+        events: [
+          {
+            id: "d0",
+            label: "a",
+            type: "spr",
+            from: "s0",
+            to: "s1",
+            from_proces: "p0",
+            to_proces: "p1",
+            channel_id: "c0",
+          },
+          {
+            id: "d1",
+            label: "b",
+            type: "odd",
+            from: "s1",
+            to: "s2",
+            from_proces: "p1",
+            to_proces: "p0",
+            channel_id: "c0",
+          },
+          {
+            id: "d2",
+            label: "e",
+            type: "lok",
+            from: "s2",
+            to: "s3",
+            from_proces: "p1",
+            to_proces: "p1",
+            channel_id: null,
+          },
+          {
+            id: "d3",
+            label: "f",
+            type: "spr",
+            from: "s2",
+            to: "s0",
+            from_proces: "p0",
+            to_proces: "p1",
+            channel_id: "c0",
+          },
+          {
+            id: "d4",
+            label: "c",
+            type: "spr",
+            from: "s3",
+            to: "s0",
+            from_proces: "p0",
+            to_proces: "p1",
+            channel_id: "c0",
+          },
+        ],
+      },
+    },
+  ],
+  channels: [
+    {
+      id: "c0",
+      proces1: {
+        id: "p0",
+        q_length: 1,
+      },
+      proces2: {
+        id: "p1",
+        q_length: 1,
+      },
+    },
+  ],
+  _updateId: "g0onloodeip",
 };
 
 class MatrixCell {
@@ -348,6 +525,8 @@ function triggerProces(p, m) {
   simulateSprejemniDogodki(p, m);
   // vse oddaje
   simulateOddajniDogodki(p, m);
+  // lokalni dodgodek
+  simulateLokalniDogodki(p, m);
 }
 
 /**
@@ -380,15 +559,27 @@ function getSprejemniDogodkiZaProcesVStanju(p, s) {
 
 /**
  * Vrne vse možne sprejemne dogodke za proces p v stanju s
+ * @param {number} p - proces index
+ * @param {string} s - proces current status
+ */
+function getLokalniDogodkiZaProcesVStanju(p, s) {
+  return systemGraph.processes[p].procesGraph.events.filter((e) => {
+    if (e.type == "lok" && e.from == s) {
+      return true;
+    }
+    return false;
+  });
+}
+
+/**
+ * Vrne vse možne sprejemne dogodke za proces p v stanju s
  * @param {number} p_index - proces index
  * @param {string} s - proces current status
  * @param {string} p_id - proces id (kdo sprejema)
  * @param {string} event - event label
  */
 function getSprejemniDogodki(p_index, s, p_id, event) {
-  console.log("-------->NS: ", p_index, s, p_id, event);
   return systemGraph.processes[p_index].procesGraph.events.filter((e) => {
-    console.log(e.type, "spr", e.from, s, e.label, event, e.to_proces, p_id);
     if (
       /*e.type == "spr" &&*/ // morda ni potrebno
       e.from == s &&
@@ -415,6 +606,22 @@ function getProcesIndex(p_id) {
  */
 function getProcesId(p_index) {
   return systemGraph.processes[p_index].id;
+}
+
+/**
+ * Vrne kanal
+ * @param {string} c_id - channel id
+ * @param {string} p_id - process id
+ */
+function getChannelLenght(c_id, p_id) {
+  const channel = systemGraph.channels.find((c) => c.id === c_id);
+  if (channel.proces1.id == p_id) {
+    return channel.proces1.q_length;
+  }
+  if (channel.proces2.id == p_id) {
+    return channel.proces2.q_length;
+  }
+  return 0;
 }
 
 function checkIfMatixEits(target) {
@@ -449,7 +656,7 @@ function simulateOddajniDogodki(p, m) {
     let col = getProcesIndex(e.to_proces);
 
     // todo: check if possible to transmit - polna vrsta (ali obstaja kanal?)
-    if (m.getLen(col, row) >= 2) {
+    if (m.getLen(col, row) >= getChannelLenght(e.channel_id, e.to_proces)) {
       new_m = new Matrix();
       new_m.type = 1;
       new_m.text = "PV";
@@ -559,6 +766,49 @@ function simulateSprejemniDogodki(p, m) {
       new_m.text = "NS";
       new_m.header = header;
       m.children.push(new_m);
+    }
+  });
+}
+
+/**
+ * @param {number} p - proces index
+ * @param {Matrix} m - matrika
+ */
+function simulateLokalniDogodki(p, m) {
+  let oddajniDogodki = getLokalniDogodkiZaProcesVStanju(p, m.peek(p, p));
+
+  // Simuliraj vsak možen oddajni dogodek
+  oddajniDogodki.forEach((e) => {
+    console.log("-----LOK------");
+    console.log(p + "(" + e.id + ")");
+
+    // Ustvari klon matrike
+    let new_m = m.clone();
+    // Pripravi možen nastanek matrike
+    let header = e.from_proces + ":" + " #" + e.label;
+
+    let row = getProcesIndex(e.from_proces);
+    let col = getProcesIndex(e.to_proces);
+
+    // popravi stanje procesa
+    new_m.setStanje(row, row, e.to);
+
+    // Preveri ali že obstaja enaka matrika
+    let obstaja = M.contains(new_m);
+
+    if (obstaja != null) {
+      // Matrika že obstaja
+      new_m = new Matrix();
+      new_m.type = 2;
+      new_m.text = obstaja;
+      new_m.header = header;
+      m.children.push(new_m);
+    } else {
+      // Nova matrika
+      new_m.createId();
+      new_m.header = header;
+      m.children.push(new_m);
+      matrixs.push(new_m);
     }
   });
 }
