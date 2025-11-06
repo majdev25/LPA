@@ -1,12 +1,11 @@
 // PGSS
 
 // graf sistema
-var systemGraph_old = {
+var systemGraph1 = {
   processes: [
     {
       id: "p0",
-      label: "p0",
-      header: "",
+      label: "A",
       procesGraph: {
         states: [
           {
@@ -58,7 +57,7 @@ var systemGraph_old = {
     },
     {
       id: "p1",
-      label: "p1",
+      label: "B",
       procesGraph: {
         states: [
           {
@@ -125,7 +124,7 @@ var systemGraph_old = {
   _updateId: "zxy6e8g28z",
 };
 
-var systemGraph = {
+var systemGraph_2 = {
   processes: [
     {
       id: "p0",
@@ -300,6 +299,173 @@ var systemGraph = {
     },
   ],
   _updateId: "g0onloodeip",
+};
+
+var systemGraph = {
+  processes: [
+    {
+      id: "p0",
+      label: "p0",
+      procesGraph: {
+        states: [
+          {
+            id: "s0",
+            label: "s0",
+            isStart: true,
+            parent_proces: "p0",
+          },
+          {
+            id: "s1",
+            label: "s1",
+            isStart: false,
+            parent_proces: "p0",
+          },
+        ],
+        events: [
+          {
+            id: "d0",
+            label: "d0",
+            type: "spr",
+            from: "s0",
+            to: "s1",
+            from_proces: "p2",
+            to_proces: "p0",
+            channel_id: "c0",
+          },
+          {
+            id: "d1",
+            label: "d1",
+            type: "spr",
+            from: "s1",
+            to: "s0",
+            from_proces: "p1",
+            to_proces: "p0",
+            channel_id: "c2",
+          },
+        ],
+      },
+    },
+    {
+      id: "p1",
+      label: "p1",
+      procesGraph: {
+        states: [
+          {
+            id: "s0",
+            label: "s0",
+            isStart: true,
+            parent_proces: "p1",
+          },
+          {
+            id: "s1",
+            label: "s1",
+            isStart: false,
+            parent_proces: "p1",
+          },
+        ],
+        events: [
+          {
+            id: "d0",
+            label: "t",
+            type: "odd",
+            from: "s0",
+            to: "s1",
+            from_proces: "p1",
+            to_proces: "p0",
+            channel_id: "c2",
+          },
+          {
+            id: "d1",
+            label: "d1",
+            type: "odd",
+            from: "s1",
+            to: "s0",
+            from_proces: "p1",
+            to_proces: "p0",
+            channel_id: "c2",
+          },
+        ],
+      },
+    },
+    {
+      id: "p2",
+      label: "p2",
+      procesGraph: {
+        states: [
+          {
+            id: "s0",
+            label: "s0",
+            isStart: true,
+            parent_proces: "p2",
+          },
+          {
+            id: "s1",
+            label: "s1",
+            isStart: false,
+            parent_proces: "p2",
+          },
+        ],
+        events: [
+          {
+            id: "d0",
+            label: "d0",
+            type: "odd",
+            from: "s0",
+            to: "s1",
+            from_proces: "p2",
+            to_proces: "p0",
+            channel_id: "c0",
+          },
+          {
+            id: "d1",
+            label: "k",
+            type: "odd",
+            from: "s1",
+            to: "s0",
+            from_proces: "p2",
+            to_proces: "p1",
+            channel_id: "c1",
+          },
+        ],
+      },
+    },
+  ],
+  channels: [
+    {
+      id: "c0",
+      proces1: {
+        id: "p0",
+        q_length: 1,
+      },
+      proces2: {
+        id: "p2",
+        q_length: 1,
+      },
+    },
+    {
+      id: "c1",
+      proces1: {
+        id: "p2",
+        q_length: 1,
+      },
+      proces2: {
+        id: "p1",
+        q_length: 1,
+      },
+    },
+    {
+      id: "c2",
+      proces1: {
+        id: "p1",
+        q_length: 1,
+      },
+      proces2: {
+        id: "p0",
+        q_length: 1,
+      },
+    },
+  ],
+  _updateId: "fq4nkg7eymn",
 };
 
 class MatrixCell {
@@ -609,6 +775,25 @@ function getProcesId(p_index) {
 }
 
 /**
+ * Vrne naziv procesa
+ * @param {string} p_id - proces id
+ */
+function getProcesLabel(p_id) {
+  return systemGraph.processes.find((p) => p.id === p_id).label;
+}
+
+/**
+ * Vrne naziv stanja
+ * @param {string} s_id - proces id
+ * @param {string} s_id - proces id
+ */
+function getStateLabel(p_id, s_id) {
+  return systemGraph.processes
+    .find((p) => p.id === p_id)
+    .states.find((s) => s.id === s_id).label;
+}
+
+/**
  * Vrne kanal
  * @param {string} c_id - channel id
  * @param {string} p_id - process id
@@ -650,7 +835,14 @@ function simulateOddajniDogodki(p, m) {
     // Ustvari klon matrike
     let new_m = m.clone();
     // Pripravi možen nastanek matrike
-    let header = e.from_proces + ":" + " -" + e.label + "(" + e.to_proces + ")";
+    let header =
+      getProcesLabel(e.from_proces) +
+      ":" +
+      " -" +
+      e.label +
+      "(" +
+      getProcesLabel(e.to_proces) +
+      ")";
 
     let row = getProcesIndex(e.from_proces);
     let col = getProcesIndex(e.to_proces);
@@ -707,7 +899,14 @@ function simulateSprejemniDogodki(p, m) {
     // Ustvari klon matrike
     let new_m = m.clone();
     // Pripravi možen nastanek matrike
-    let header = e.from_proces + ":" + " +" + e.label + "(" + e.to_proces + ")";
+    let header =
+      getProcesLabel(e.from_proces) +
+      ":" +
+      " +" +
+      e.label +
+      "(" +
+      getProcesLabel(e.to_proces) +
+      ")";
 
     let col = getProcesIndex(e.from_proces);
     let row = getProcesIndex(e.to_proces);
@@ -760,7 +959,12 @@ function simulateSprejemniDogodki(p, m) {
       getSprejemniDogodki(p, m.peek(p, p), proces2.id, m.peek(row, col))
         ?.length < 1
     ) {
-      let header = getProcesId(p) + ":" + " +(" + getProcesId(p2_index) + ")";
+      let header =
+        getProcesLabel(getProcesId(p)) +
+        ":" +
+        " +(" +
+        getProcesLabel(getProcesId(p2_index)) +
+        ")";
       new_m = new Matrix();
       new_m.type = 1;
       new_m.text = "NS";
@@ -785,7 +989,7 @@ function simulateLokalniDogodki(p, m) {
     // Ustvari klon matrike
     let new_m = m.clone();
     // Pripravi možen nastanek matrike
-    let header = e.from_proces + ":" + " #" + e.label;
+    let header = getProcesLabel(e.from_proces) + ":" + " #" + e.label;
 
     let row = getProcesIndex(e.from_proces);
     let col = getProcesIndex(e.to_proces);
