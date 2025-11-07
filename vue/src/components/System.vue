@@ -50,7 +50,7 @@ async function startPgss(){
     try {
         const result = await window.api.invoke("start-pgss", {});
     } catch (err) {
-        console.error("Failed to update graph:", err);
+        console.error("Failed to run pgss:", err);
     }
 }
 

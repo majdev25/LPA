@@ -336,6 +336,9 @@ function getStateLabel(p_id, s_id) {
  */
 function getChannelLenght(c_id, p_id) {
   const channel = systemGraph.channels.find((c) => c.id === c_id);
+  if (!channel) {
+    return -1;
+  }
   if (channel.proces1.id == p_id) {
     return channel.proces1.q_length;
   }
@@ -383,8 +386,14 @@ function simulateOddajniDogodki(p, m) {
     let row = getProcesIndex(e.from_proces);
     let col = getProcesIndex(e.to_proces);
 
+    // ali kanal obstaja
+    const channel_length = getChannelLenght(e.channel_id, e.to_proces);
+    if (channel_length == -1) {
+      return;
+    }
+
     // todo: check if possible to transmit - polna vrsta (ali obstaja kanal?)
-    if (m.getLen(col, row) >= getChannelLenght(e.channel_id, e.to_proces)) {
+    if (m.getLen(col, row) >= channel_length) {
       new_m = new Matrix();
       new_m.type = 1;
       new_m.text = "PV";
@@ -587,7 +596,8 @@ function simulate(sg) {
   // Izpiši matriko
   let tree = matrixTreeToDot(M);
   console.log(tree);
-  return tree;
+
+  return { tree, M, systemGraph };
 }
 
 function matrixTreeToDot(matrix) {

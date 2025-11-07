@@ -2,12 +2,14 @@
 import { ref, onMounted } from "vue";
 import Proces from "./components/Proces.vue";
 import System from "./components/System.vue";
+import Pgss from "./components/Pgss.vue";
 
 var winType = ref(null);
 var data = ref(null);
 var id = ref(null);
 
-var systemGraphVar = null; // will hold calculated systemGraph
+var systemGraphVar = null;
+var pgss_data = ref(null);
 
 onMounted(() => {
   window.api.on("win-type", (newWinType) => {
@@ -25,6 +27,8 @@ onMounted(() => {
 
     if (winType.value == "proces") {
       systemGraphVar = data.value.systemGraph;
+    } else if (winType.value == "pgss") {
+      pgss_data.value = data.value;
     }
   });
 });
@@ -37,4 +41,8 @@ onMounted(() => {
     :_id="id"
   />
   <System v-else-if="winType == 'system'" />
+  <Pgss
+    :_pgss_data="pgss_data"
+    v-else-if="winType === 'pgss' && pgss_data && pgss_data.pgss.M"
+  />
 </template>

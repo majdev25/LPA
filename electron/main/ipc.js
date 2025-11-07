@@ -26,6 +26,12 @@ function registerIpcHandlers({ createWindow, windows }) {
         systemGraph.processes[i] = { ...newProcess };
       }
     });
+
+    // Remove any processes in systemGraph that are not in the new graph
+    systemGraph.processes = systemGraph.processes.filter((p) =>
+      graph.processes.some((np) => np.id === p.id)
+    );
+
     systemGraph.channels = graph.channels.map((c) => ({ ...c }));
 
     // Channels: shallow copy of the array
@@ -109,19 +115,10 @@ function registerIpcHandlers({ createWindow, windows }) {
     }
   });
 
+  let PGSS_WINDOW_COUNTER = 0;
+
   ipcMain.handle("start-pgss", async (event, {}) => {
     try {
-      // Ask user for file path to save
-      const { canceled, filePath } = await dialog.showSaveDialog({
-        title: "Save System Graph",
-        defaultPath: "systemGraph.json",
-        filters: [{ name: "JSON Files", extensions: ["json"] }],
-      });
-
-      if (canceled || !filePath) {
-        return false; // user canceled
-      }
-
       var clean_graph = structuredClone(systemGraph);
 
       //processes
@@ -163,9 +160,11 @@ function registerIpcHandlers({ createWindow, windows }) {
         };
       });
 
-      // Save the object as JSON
-      //fs.writeFileSync(filePath, JSON.stringify(clean_graph, null, 2), "utf-8");
-      fs.writeFileSync(filePath, simulate(clean_graph), "utf-8");
+      createWindow(
+        "pgss",
+        { pgss: simulate(clean_graph) },
+        "pgss" + PGSS_WINDOW_COUNTER++
+      );
 
       return true; // success
     } catch (err) {
