@@ -4,12 +4,12 @@ import Proces from "./components/Proces.vue";
 import System from "./components/System.vue";
 import Pgss from "./components/Pgss.vue";
 
-var winType = ref(null);
-var data = ref(null);
-var id = ref(null);
+const winType = ref(null);
+const data = ref(null);
+const id = ref(null);
 
-var systemGraphVar = null;
-var pgss_data = ref(null);
+const systemGraphVar = ref(null); // ✅ make reactive
+const pgss_data = ref(null);
 
 onMounted(() => {
   window.api.on("win-type", (newWinType) => {
@@ -25,9 +25,9 @@ onMounted(() => {
 
     console.log("[APP] win-data " + id.value, newData);
 
-    if (winType.value == "proces") {
-      systemGraphVar = data.value.systemGraph;
-    } else if (winType.value == "pgss") {
+    if (winType.value === "proces" || winType.value === "system") {
+      systemGraphVar.value = data.value?.systemGraph;
+    } else if (winType.value === "pgss") {
       pgss_data.value = data.value;
     }
   });
@@ -40,9 +40,12 @@ onMounted(() => {
     :_systemGraph="systemGraphVar"
     :_id="id"
   />
-  <System v-else-if="winType == 'system'" />
+  <System
+    v-else-if="winType === 'system' && systemGraphVar"
+    :_systemGraph="systemGraphVar"
+  />
   <Pgss
-    :_pgss_data="pgss_data"
     v-else-if="winType === 'pgss' && pgss_data && pgss_data.pgss.M"
+    :_pgss_data="pgss_data"
   />
 </template>

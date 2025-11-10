@@ -65,6 +65,10 @@ export class GraphRenderer {
   // DRAW process
   // =======================
 
+  renderChannelName(channel) {
+    return channel.proces1.id + "-" + channel.proces2.id;
+  }
+
   drawProcesses(defs) {
     const { svg, graph, selectedProcesId, handleProcesClick } = defs;
     const drag = this.d3.drag().on("drag", (channel, d) => {
@@ -220,14 +224,14 @@ export class GraphRenderer {
       .attr("class", "channel-label-bg")
       .attr("x", (d) => {
         if (!d._mid) return 0;
-        const width = d.renderChannelName(d).length * 8 + 10;
+        const width = this.renderChannelName(d).length * 8 + 10;
         return d._mid.x - width / 2; // center rect on curve midpoint
       })
       .attr("y", (d) => {
         if (!d._mid) return 0;
         return d._mid.y - 12; // vertical offset
       })
-      .attr("width", (d) => d.renderChannelName(d).length * 8 + 10)
+      .attr("width", (d) => this.renderChannelName(d).length * 8 + 10)
       .attr("height", 20)
       .attr("fill", "white")
       .attr("stroke", "black")
@@ -248,7 +252,7 @@ export class GraphRenderer {
       .attr("text-anchor", "middle")
       .attr("font-size", 14)
       .attr("fill", "black")
-      .text((d) => d.renderChannelName(d))
+      .text((d) => this.renderChannelName(d))
       .style("cursor", "pointer")
       .on("click", (domEvent, d) => {
         this.handleChannelClick(domEvent, d.id);

@@ -448,12 +448,12 @@ function simulateSprejemniDogodki(p, m) {
     let new_m = m.clone();
     // Pripravi možen nastanek matrike
     let header =
-      getProcesLabel(e.from_proces) +
+      getProcesLabel(e.to_proces) +
       ":" +
       " +" +
       e.label +
       "(" +
-      getProcesLabel(e.to_proces) +
+      getProcesLabel(e.from_proces) +
       ")";
 
     let col = getProcesIndex(e.from_proces);

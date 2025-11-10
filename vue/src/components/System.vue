@@ -11,19 +11,16 @@ const d3Container = ref(null);
 const selectedProcesId = ref(null);
 const selectedChannelId = ref(null);
 
-const graph = reactive({
-      processes: [],
-      channels: [],
-    }
-  );
+let graph = reactive({}); //TODO make graf ref
 const mode = ref({ addProces: true, addChannel: false });
 
-watch(
-  () => graph,
-  async () => {
+const props = defineProps({
+  _systemGraph: {
+    type: Array,
+    default: () => {},
   },
-  { deep: true }
-);
+  _id: null,
+});
 
 async function updateGraph(){
     try {
@@ -45,6 +42,14 @@ async function saveGraphToFile(){
     }
 }
 
+async function importGraphFromFile(){
+    try {
+        const result = await window.api.invoke("import-systemGraph", {});
+    } catch (err) {
+        console.error("Failed to update graph:", err);
+    }
+}
+
 async function startPgss(){
     await updateGraph();
     try {
@@ -57,12 +62,22 @@ async function startPgss(){
 let nextProcesId = 0;
 let nextChannelId = 0;
 function genProcesId() {
-  return `p${nextProcesId++}`;
-}
-function genChannelId() {
-  return `c${nextChannelId++}`;
+  let id;
+  while (true) {
+    id = `p${nextProcesId++}`;
+    const exists = graph.processes.some(p => p.id === id);
+    if (!exists) return id;
+  }
 }
 
+function genChannelId() {
+  let id;
+  while (true) {
+    id = `c${nextChannelId++}`;
+    const exists = graph.channels.some(c => c.id === id);
+    if (!exists) return id;
+  }
+}
 function getProces(id) {
   return graph.processes.find((c) => c.id === id);
 }
@@ -117,6 +132,8 @@ function addChannel(fromId, toId) {
   const c1 = getProces(fromId);
   const c2 = getProces(toId);
   if (!c1 || !c2) return;
+
+  if(c1 == c2) return;
 
   const exists = graph.channels.some(
     (ch) =>
@@ -188,7 +205,7 @@ function deleteChannel(id) {
       updateGraph();
 }
 
-const renderer = new GraphRenderer();
+let renderer = null;
 
 function clearAll() {
   mode.value.addProces = false;
@@ -228,6 +245,13 @@ function handleChannelClick(channel, i) {
 }
 
 onMounted(() => {
+  console.log("-----------")
+  console.log(props._systemGraph)
+  graph = props._systemGraph;
+  console.log(graph)
+
+  renderer = new GraphRenderer();
+
   const container = d3Container.value;
 
   // Create SVG to match container size
@@ -247,16 +271,6 @@ onMounted(() => {
       }
     });
 
-  // Make SVG resize when window resizes
-  function resizeSvg() {
-    svg
-      .attr("width", container.clientWidth)
-      .attr("height", container.clientHeight);
-    renderer.render();
-  }
-
-  window.addEventListener("resize", resizeSvg);
-
   // Initialize renderer
   renderer.init({
     svg,
@@ -267,6 +281,16 @@ onMounted(() => {
     handleProcesClick,
     handleChannelClick,
   });
+
+  // Make SVG resize when window resizes
+  function resizeSvg() {
+    svg
+      .attr("width", container.clientWidth)
+      .attr("height", container.clientHeight);
+    renderer.render();
+  }
+
+  window.addEventListener("resize", resizeSvg);
 
   renderer.render();
 
@@ -314,15 +338,22 @@ onMounted(() => {
             class="d-flex align-items-center me-2 cursor-pointer fs-6 text-tight text-sm _badge hover-bg-light text-gray"
             @click="saveGraphToFile"
           >
-            <FontAwesomeIcon :icon="['fa', 'bullhorn']" class="me-1" />
-            Shrani sistem
+            <FontAwesomeIcon :icon="['fa', 'floppy-disk']" class="me-1" />
+            Shrani kot
+          </div>
+          <div
+            class="d-flex align-items-center me-2 cursor-pointer fs-6 text-tight text-sm _badge hover-bg-light text-gray"
+            @click="importGraphFromFile"
+          >
+            <FontAwesomeIcon :icon="['fa', 'file-import']" class="me-1" />
+            Uvozi sistem
           </div>
           <div
             class="d-flex align-items-center me-2 cursor-pointer fs-6 text-tight text-sm _badge hover-bg-light text-gray"
             @click="startPgss"
           >
-            <FontAwesomeIcon :icon="['fa', 'bullhorn']" class="me-1" />
-            Start pgss
+            <FontAwesomeIcon :icon="['fa', 'calculator']" class="me-1" />
+            Start PGSS
           </div>
         </div>
       </div>

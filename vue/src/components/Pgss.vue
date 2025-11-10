@@ -38,6 +38,8 @@ function layoutTree(node, depth = 0, xStart = 0) {
 onMounted(() => {
   if (!props._pgss_data || !props._pgss_data.pgss?.M) return;
 
+  console.log(props._pgss_data);
+
   rectWidth = 50 * props._pgss_data.pgss.systemGraph.processes.length;
   rectHeight = 25 * props._pgss_data.pgss.systemGraph.processes.length;
 
@@ -182,12 +184,16 @@ onMounted(() => {
             .attr("fill", "#333")
             .attr("stroke", "#000");
 
-          const text =
-            cell.type === "stanje"
-              ? cell.value
-              : cell.type === "vrsta"
-              ? cell.value.join(", ")
-              : "";
+          let text = "";
+          if (cell.type === "stanje") {
+            console.log(props._pgss_data.pgss.systemGraph.processes, i);
+            let state = props._pgss_data.pgss.systemGraph.processes[
+              i
+            ].procesGraph.states.find((s) => s.id == cell.value);
+            text = state.label;
+          } else if (cell.type === "vrsta") {
+            text = cell.value.join(", ");
+          }
 
           g.append("text")
             .attr("x", node.x - rectWidth / 2 + j * cellWidth + cellWidth / 2)

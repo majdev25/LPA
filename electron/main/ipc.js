@@ -5,7 +5,7 @@ const { simulate } = require("./pgss.js");
 
 var systemGraph = {};
 
-function registerIpcHandlers({ createWindow, windows }) {
+function registerIpcHandlers({ createWindow, windows, restartApp }) {
   function updateWindowsData() {
     windows.forEach((win, id) => {
       win.webContents.send("win-data", { systemGraph });
@@ -112,6 +112,35 @@ function registerIpcHandlers({ createWindow, windows }) {
     } catch (err) {
       console.error("[save-systemGraph] Error saving system graph:", err);
       return false;
+    }
+  });
+
+  ipcMain.handle("import-systemGraph", async (event) => {
+    try {
+      // Ask user to select a JSON file to open
+      const { canceled, filePaths } = await dialog.showOpenDialog({
+        title: "Open System Graph",
+        properties: ["openFile"],
+        filters: [{ name: "JSON Files", extensions: ["json"] }],
+      });
+
+      if (canceled || !filePaths || filePaths.length === 0) {
+        return null; // user canceled
+      }
+
+      const filePath = filePaths[0];
+
+      // Read and parse the JSON file
+      const data = fs.readFileSync(filePath, "utf-8");
+      const importedGraph = JSON.parse(data);
+
+      updateSystemGraph(importedGraph);
+      restartApp({ systemGraph: importedGraph });
+
+      return true;
+    } catch (err) {
+      console.error("[import-systemGraph] Error loading system graph:", err);
+      return null;
     }
   });
 

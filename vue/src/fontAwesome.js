@@ -9,6 +9,9 @@ import {
   faCircleNotch,
   faArrowRight,
   faBullhorn,
+  faFloppyDisk,
+  faFileImport,
+  faCalculator,
 } from "@fortawesome/free-solid-svg-icons";
 import { faGithub } from "@fortawesome/free-brands-svg-icons";
 
@@ -20,7 +23,10 @@ library.add(
   faTrash,
   faCircleNotch,
   faArrowRight,
-  faBullhorn
+  faBullhorn,
+  faFloppyDisk,
+  faFileImport,
+  faCalculator
 );
 
 export default FontAwesomeIcon;

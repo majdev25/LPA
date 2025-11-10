@@ -42,11 +42,40 @@ function createWindow(type, data, id) {
 
 // App lifecycle
 app.whenReady().then(() => {
-  createWindow("system", null, "root");
+  createWindow(
+    "system",
+    {
+      systemGraph: {
+        processes: [],
+        channels: [],
+      },
+    },
+    "root"
+  );
 
-  const dep = { createWindow, windows };
+  const dep = { createWindow, windows, restartApp };
   registerIpcHandlers(dep); // register IPC once app is ready
 });
+
+function restartApp(systemGraph) {
+  // Close all existing windows
+  for (const win of windows.values()) {
+    if (!win.isDestroyed()) {
+      win.close();
+    }
+  }
+  windows.clear();
+
+  console.log(windows);
+
+  createWindow(
+    "system",
+    {
+      systemGraph: systemGraph.systemGraph,
+    },
+    "root"
+  );
+}
 
 app.on("window-all-closed", () => {
   if (process.platform !== "darwin") app.quit();
