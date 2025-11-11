@@ -3,8 +3,12 @@ const { app, BrowserWindow, ipcMain } = require("electron");
 const { registerIpcHandlers } = require("./ipc");
 
 const windows = new Map();
+let root_win_counter = 0;
 
 function createWindow(type, data, id) {
+  if (id == "root") {
+    id = id + root_win_counter++;
+  }
   if (windows.has(id)) {
     focusWindow(id);
     return;
@@ -18,6 +22,8 @@ function createWindow(type, data, id) {
       nodeIntegration: false,
     },
   });
+
+  windows.set(id, win);
 
   if (process.env.NODE_ENV === "development") {
     win.loadURL("http://localhost:5173");
@@ -36,8 +42,6 @@ function createWindow(type, data, id) {
   win.on("closed", () => {
     windows.delete(id);
   });
-
-  windows.set(id, win);
 }
 
 // App lifecycle

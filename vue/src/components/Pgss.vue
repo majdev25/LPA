@@ -149,12 +149,6 @@ function draw(data) {
     .on("zoom", (event) => g.attr("transform", event.transform));
   svg.call(zoom);
 
-  // Center root node
-  let rootNode =
-    draw_args.value.root_node === 0
-      ? data
-      : findNodeById(props._pgss_data.pgss.M, draw_args.value.root_node);
-
   // Draw lines first
   function drawLinks(node) {
     if (
@@ -362,19 +356,20 @@ function shiftTreeToVisibleArea(node, offsetX = 50, offsetY = 50) {
 function restart() {
   if (!props._pgss_data || !props._pgss_data.pgss?.M) return;
 
-  console.log(props._pgss_data);
+  let pgss_data;
 
-  rectWidth = 50 * props._pgss_data.pgss.systemGraph.processes.length;
-  rectHeight = 25 * props._pgss_data.pgss.systemGraph.processes.length;
+  console.log(props._pgss_data);
+  let pgss_copy = JSON.parse(JSON.stringify(props._pgss_data.pgss));
+
+  rectWidth = 50 * pgss_copy.systemGraph.processes.length;
+  rectHeight = 25 * pgss_copy.systemGraph.processes.length;
 
   let data = null;
 
   if (draw_args.value.root_node == 0) {
-    data = props._pgss_data.pgss.M;
+    data = pgss_copy.M;
   } else {
-    data =
-      findNodeById(props._pgss_data.pgss.M, draw_args.value.root_node) ||
-      props._pgss_data.pgss.M;
+    data = findNodeById(pgss_copy.M, draw_args.value.root_node) || pgss_copy.M;
   }
 
   draw(data);
@@ -410,10 +405,12 @@ function centerRoot(svg, root) {
   const translateX = (centerX - root.x) / scaleX;
   const translateY = (centerY - root.y) / scaleY;
 
-  svg
-    .transition()
-    .duration(500)
-    .call(zoom.transform, d3.zoomIdentity.translate(translateX, translateY));
+  if (translateX && translateY) {
+    svg
+      .transition()
+      .duration(500)
+      .call(zoom.transform, d3.zoomIdentity.translate(translateX, translateY));
+  }
 }
 
 // --- handle window resize ---
