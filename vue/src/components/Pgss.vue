@@ -1,5 +1,5 @@
 <script setup>
-import { onMounted, ref } from "vue";
+import { onMounted, onBeforeUnmount, ref, watch } from "vue";
 import * as d3 from "d3";
 
 const props = defineProps({
@@ -10,6 +10,24 @@ const props = defineProps({
 });
 
 const svgRef = ref(null);
+const draw_args = ref({
+  tree_type: 0,
+  levels_to_draw: -1,
+  root_node: 0,
+});
+
+const tree_types = [
+  { val: 0, text: "Navadno drevo" },
+  { val: 1, text: "Strnjeno drevo" },
+];
+
+watch(
+  () => draw_args,
+  () => {
+    restart();
+  },
+  { deep: true }
+);
 
 // nastavitve kvadratov in razmikov
 let rectWidth = 100;
@@ -17,7 +35,10 @@ let rectHeight = 50;
 const verticalSpacing = 80;
 const horizontalSpacing = 20;
 
+let zoom, g;
+
 // Rekurzivna funkcija za layout
+// --- classic tree layout ---
 function layoutTree(node, depth = 0, xStart = 0) {
   node.y = depth * (rectHeight + verticalSpacing); // vertical spacing
 
@@ -35,18 +56,63 @@ function layoutTree(node, depth = 0, xStart = 0) {
   return currentX;
 }
 
-onMounted(() => {
-  if (!props._pgss_data || !props._pgss_data.pgss?.M) return;
+// --- compact tree layout ---
+function collectNodesByLevel(node, levels = {}, depth = 0) {
+  if (!levels[depth]) levels[depth] = [];
+  levels[depth].push(node);
 
-  console.log(props._pgss_data);
+  node.y = depth * (rectHeight * 2 + verticalSpacing); // vertical position
 
-  rectWidth = 50 * props._pgss_data.pgss.systemGraph.processes.length;
-  rectHeight = 25 * props._pgss_data.pgss.systemGraph.processes.length;
+  if (node.children) {
+    node.children.forEach((child) =>
+      collectNodesByLevel(child, levels, depth + 1)
+    );
+  }
 
-  const data = props._pgss_data.pgss.M;
+  return levels;
+}
 
+function assignHorizontalPositions(levels, rootNode, gap = 150) {
+  for (const depth in levels) {
+    const nodes = levels[depth];
+    const count = nodes.length;
+    const totalWidth = (count - 1) * gap;
+
+    const startX = -totalWidth / 2; // temporary center at 0
+    nodes.forEach((node, i) => {
+      node.x = startX + i * gap;
+    });
+  }
+
+  // --- shift all nodes so root node is at x = 0 ---
+  const offset = -rootNode.x;
+  for (const depth in levels) {
+    levels[depth].forEach((node) => {
+      node.x += offset;
+    });
+  }
+}
+
+function draw(data) {
   // layout drevesa
-  layoutTree(data);
+  console.log(draw_args.value);
+  if (draw_args.value.tree_type == 0) {
+    layoutTree(data);
+  } else if (draw_args.value.tree_type == 1) {
+    const levels = collectNodesByLevel(data);
+    assignHorizontalPositions(levels, data, rectWidth + 40); // pass root node as data
+  }
+
+  console.log(data);
+
+  if (draw_args.value.tree_type == 0) layoutTree(data);
+  else {
+    const levels = collectNodesByLevel(data);
+    assignHorizontalPositions(levels, data, rectWidth + 40);
+  }
+
+  // Shift so tree starts at visible area
+  shiftTreeToVisibleArea(data, 50, 50);
 
   // izračun SVG dimenzij
   let maxX = 0;
@@ -74,24 +140,28 @@ onMounted(() => {
     .style("user-select", "none")
     .style("cursor", "grab");
 
-  const g = svg.append("g");
+  g = svg.append("g");
 
   // Zoom/pan
-  const zoom = d3
+  zoom = d3
     .zoom()
-    .scaleExtent([0.2, 3])
+    .scaleExtent([0.05, 100])
     .on("zoom", (event) => g.attr("transform", event.transform));
   svg.call(zoom);
 
   // Center root node
-  const initialTransform = d3.zoomIdentity.translate(
-    ((maxX + rectWidth) / 2) * -1 + 500,
-    50
-  );
-  svg.call(zoom.transform, initialTransform);
+  let rootNode =
+    draw_args.value.root_node === 0
+      ? data
+      : findNodeById(props._pgss_data.pgss.M, draw_args.value.root_node);
 
   // Draw lines first
   function drawLinks(node) {
+    if (
+      draw_args.value.levels_to_draw >= 0 &&
+      node.level + 1 > draw_args.value.levels_to_draw
+    )
+      return;
     if (!node.children) return;
     node.children.forEach((child) => {
       g.append("line")
@@ -105,10 +175,15 @@ onMounted(() => {
       drawLinks(child);
     });
   }
+  console.log("drawing links");
   drawLinks(data);
 
   // Draw nodes on top
   function drawNodes(node) {
+    const last_level =
+      draw_args.value.levels_to_draw >= 0 &&
+      node.level > draw_args.value.levels_to_draw - 1;
+
     if (node.header) {
       const headerPaddingX = 6;
       const headerPaddingY = 4;
@@ -186,7 +261,6 @@ onMounted(() => {
 
           let text = "";
           if (cell.type === "stanje") {
-            console.log(props._pgss_data.pgss.systemGraph.processes, i);
             let state = props._pgss_data.pgss.systemGraph.processes[
               i
             ].procesGraph.states.find((s) => s.id == cell.value);
@@ -208,6 +282,20 @@ onMounted(() => {
             .text(text);
         });
       });
+
+      if (last_level) {
+        const radius = 4; // dot radius
+        const dotSpacing = 10; // horizontal spacing between dots
+        const bottomY = node.y + rectHeight / 2 + 12; // 8px below rectangle
+
+        [-1, 0, 1].forEach((i) => {
+          g.append("circle")
+            .attr("cx", node.x + i * dotSpacing)
+            .attr("cy", bottomY)
+            .attr("r", radius)
+            .attr("fill", "black");
+        });
+      }
     } else if (node.type === 1) {
       const radius = rectHeight / 2;
       g.append("circle")
@@ -242,11 +330,123 @@ onMounted(() => {
         .attr("fill", "white")
         .text(node.text);
     }
+    if (node.children && !last_level) node.children.forEach(drawNodes);
+  }
+  console.log("drawing nodes");
+  drawNodes(data);
+}
 
-    if (node.children) node.children.forEach(drawNodes);
+function findNodeById(node, targetId) {
+  if (node.id === targetId) return node;
+
+  if (node.children) {
+    for (const child of node.children) {
+      const result = findNodeById(child, targetId);
+      console.log("found:", result);
+      if (result) return result;
+    }
   }
 
-  drawNodes(data);
+  return null; // not found
+}
+
+function shiftTreeToVisibleArea(node, offsetX = 50, offsetY = 50) {
+  function recurse(n) {
+    n.x += offsetX;
+    n.y += offsetY;
+    if (n.children) n.children.forEach(recurse);
+  }
+  recurse(node);
+}
+
+function restart() {
+  if (!props._pgss_data || !props._pgss_data.pgss?.M) return;
+
+  console.log(props._pgss_data);
+
+  rectWidth = 50 * props._pgss_data.pgss.systemGraph.processes.length;
+  rectHeight = 25 * props._pgss_data.pgss.systemGraph.processes.length;
+
+  let data = null;
+
+  if (draw_args.value.root_node == 0) {
+    data = props._pgss_data.pgss.M;
+  } else {
+    data =
+      findNodeById(props._pgss_data.pgss.M, draw_args.value.root_node) ||
+      props._pgss_data.pgss.M;
+  }
+
+  draw(data);
+}
+
+function centerRoot(svg, root) {
+  const svgEl = svgRef.value;
+  if (!svgEl || !root) return;
+
+  // read SVG client dimensions in pixels
+  const svgWidth = svgEl.clientWidth || 800;
+  const svgHeight = svgEl.clientHeight || 600;
+
+  // read viewBox values (drawing coordinate space)
+  const vb = svgEl.getAttribute("viewBox")?.split(" ").map(Number);
+  let vx = 0,
+    vy = 0,
+    vw = svgWidth,
+    vh = svgHeight;
+  if (vb && vb.length === 4 && vb.every((v) => !isNaN(v))) {
+    [vx, vy, vw, vh] = vb;
+  }
+
+  // compute coordinate scale between pixels and viewBox units
+  const scaleX = vw / svgWidth;
+  const scaleY = vh / svgHeight;
+
+  // convert pixel center to viewBox coordinates
+  const centerX = vx + vw / 2;
+  const centerY = vy + vh / 2;
+
+  // how much we need to move the root to align with center
+  const translateX = (centerX - root.x) / scaleX;
+  const translateY = (centerY - root.y) / scaleY;
+
+  svg
+    .transition()
+    .duration(500)
+    .call(zoom.transform, d3.zoomIdentity.translate(translateX, translateY));
+}
+
+// --- handle window resize ---
+function handleResize() {
+  if (!svgRef.value || !g || !zoom) return;
+
+  // Recompute viewBox to fit the container
+  const svgWidth = svgRef.value.clientWidth;
+  const svgHeight = svgRef.value.clientHeight;
+
+  d3.select(svgRef.value).attr("width", svgWidth).attr("height", svgHeight);
+
+  // Recenter root node properly
+  if (!props._pgss_data?.pgss?.M) return;
+
+  let data =
+    draw_args.value.root_node == 0
+      ? props._pgss_data.pgss.M
+      : findNodeById(props._pgss_data.pgss.M, draw_args.value.root_node) ||
+        props._pgss_data.pgss.M;
+
+  // Important: you must recalc layout if rectWidth/Height depend on container
+  // Otherwise, just shift the g group
+  centerRoot(d3.select(svgRef.value), data);
+}
+
+onMounted(() => {
+  restart();
+  window.addEventListener("resize", handleResize);
+});
+
+onBeforeUnmount(() => {
+  window.removeEventListener("resize", handleResize);
 });
 </script>
 
@@ -261,9 +461,34 @@ onMounted(() => {
       style="height: fit-content; z-index: 10; flex-shrink: 0"
     >
       <div>
-        <div class="fs-sm fw-bold ms-2">
-          Proces
-          {{ procesName }}
+        <div class="d-flex flex gap-2">
+          <div>
+            <label class="fs-7">Tip izrisa drevesa</label>
+            <select class="form-select fs-7" v-model="draw_args.tree_type">
+              <option :value="t.val" v-for="t in tree_types">
+                {{ t.text }}
+              </option>
+            </select>
+          </div>
+
+          <div>
+            <label class="fs-7">Globina drevesa</label>
+            <input
+              type="number"
+              class="form-control fs-7"
+              v-model="draw_args.levels_to_draw"
+              placeholder="Vnesi ime stanja"
+            />
+          </div>
+          <div>
+            <label class="fs-7">Koren drevesa</label>
+            <input
+              type="number"
+              class="form-control fs-7"
+              v-model="draw_args.root_node"
+              placeholder="Vnesi ime stanja"
+            />
+          </div>
         </div>
       </div>
     </div>
