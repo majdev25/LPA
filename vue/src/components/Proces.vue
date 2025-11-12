@@ -189,15 +189,33 @@ function addEvent(fromId, toId) {
 }
 
 function renderEventName(event) {
-  // use edge.type and edge.label directly
   if (event.type === "spr") {
-    return "+" + event.label + "(" + event.from_proces + ")";
+    return (
+      "+" +
+      event.label +
+      "(" +
+      systemGraph.processes.find((p) => p.id == event.from_proces).label +
+      ")"
+    );
   } else if (event.type === "odd") {
-    return "-" + event.label + "(" + event.to_proces + ")";
+    return (
+      "-" +
+      event.label +
+      "(" +
+      systemGraph.processes.find((p) => p.id == event.to_proces).label +
+      ")"
+    );
   } else if (event.type === "lok") {
     return "#" + event.label;
   } else if (event.type === "tra") {
-    return event.label + "(" + event.from_proces + "," + event.to_proces + ")";
+    return (
+      event.label +
+      "(" +
+      systemGraph.processes.find((p) => p.id == event.from_proces).label +
+      "," +
+      systemGraph.processes.find((p) => p.id == event.to_proces).label +
+      ")"
+    );
   }
 }
 
