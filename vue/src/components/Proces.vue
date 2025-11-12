@@ -194,7 +194,8 @@ function renderEventName(event) {
       "+" +
       event.label +
       "(" +
-      systemGraph.processes.find((p) => p.id == event.from_proces).label +
+      (systemGraph.processes.find((p) => p.id == event.from_proces)?.label ||
+        "") +
       ")"
     );
   } else if (event.type === "odd") {
@@ -202,7 +203,8 @@ function renderEventName(event) {
       "-" +
       event.label +
       "(" +
-      systemGraph.processes.find((p) => p.id == event.to_proces).label +
+      (systemGraph.processes.find((p) => p.id == event.to_proces)?.label ||
+        "") +
       ")"
     );
   } else if (event.type === "lok") {
@@ -211,9 +213,11 @@ function renderEventName(event) {
     return (
       event.label +
       "(" +
-      systemGraph.processes.find((p) => p.id == event.from_proces).label +
+      (systemGraph.processes.find((p) => p.id == event.from_proces)?.label ||
+        "") +
       "," +
-      systemGraph.processes.find((p) => p.id == event.to_proces).label +
+      (systemGraph.processes.find((p) => p.id == event.to_proces)?.label ||
+        "") +
       ")"
     );
   }
