@@ -53,6 +53,9 @@ class Matrix {
     this.type = type;
     this.text = ""; //if type is 1
     this.level = null;
+    this.flags = {
+      dead_end: false,
+    };
 
     this.data = [];
     for (let i = 0; i < this.rows; i++) {
@@ -229,6 +232,20 @@ function triggerProces(p, m) {
   simulateOddajniDogodki(p, m);
   // lokalni dodgodek
   simulateLokalniDogodki(p, m);
+
+  // oznaci dead end
+  flagDeadEnd(m);
+}
+
+function flagDeadEnd(m) {
+  for (let i = 0; i < m.children.length; i++) {
+    console.log(m.children[i].type);
+    if (m.children[i].type === 0 || m.children[i].type === 2) {
+      m.flags.dead_end = false;
+      return;
+    }
+  }
+  m.flags.dead_end = true;
 }
 
 /**

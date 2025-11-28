@@ -223,6 +223,12 @@ function draw(data) {
       const cellWidth = rectWidth / (node.data[0]?.length || 1);
       const cellHeight = rectHeight / (node.data?.length || 1);
 
+      let cell_color = "#333";
+
+      if (node.flags.dead_end) {
+        cell_color = "#FF0000";
+      }
+
       // outer rectangle
       g.append("rect")
         .attr("x", node.x - rectWidth / 2)
@@ -250,7 +256,7 @@ function draw(data) {
             .attr("y", node.y - rectHeight / 2 + i * cellHeight)
             .attr("width", cellWidth)
             .attr("height", cellHeight)
-            .attr("fill", "#333")
+            .attr("fill", cell_color)
             .attr("stroke", "#000");
 
           let text = "";
