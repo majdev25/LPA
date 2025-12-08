@@ -49,9 +49,6 @@ const fromProceses = computed(() => {
     })
     .filter(Boolean); // remove undefined
   }
-
-  console.log(props.systemGraph);
-  console.log(props.systemGraph.processes);
   // add myself
   const self = props.systemGraph.processes.find(proc => proc.id === props._procId);
   if (self) connected.push({ id: self.id, label: self.label });
@@ -100,6 +97,40 @@ const toProceses = computed(() => {
 });
 
   return connected;
+});
+
+const getProcessLabelById = (id) => {
+  const proc = props.systemGraph.processes.find(p => p.id === id);
+  return proc ? proc.label : "Unknown";
+}
+
+const sugestedEvents = computed(() => {
+  if (!props.systemGraph) return [];
+
+  let events = [];
+  props.systemGraph.processes.forEach(p => {
+    if(p.id == props._procId) return; // skip self
+    p.procesGraph.events.forEach(e => {
+ 
+       if(localEvent.type === "spr"){
+          // sprejemni
+          if(e.type == "odd" && e.to_proces == props._procId){
+            let new_e = { ...e };
+            new_e.procesLabel =  getProcessLabelById(e.from_proces);
+            events.push(new_e);
+          }
+       }
+       else if(localEvent.type === "odd"){
+          // sprejemni
+          if(e.type == "spr" && e.from_proces == props._procId){
+            let new_e = { ...e };
+            new_e.procesLabel =  getProcessLabelById(e.to_proces);
+            events.push(new_e);
+          }
+       }
+    });
+  });
+  return events;
 });
 
 // watch for prop changes
@@ -153,13 +184,10 @@ function updateIzvorPonor() {
     toProcessId = self.id;
   }
 
-  console.log(fromProcessId);
-
 
   localEvent.from_proces = fromProcessId;
   localEvent.to_proces = toProcessId;
-
-  console.log({ ...localEvent });
+  
   updateChannel();
 }
 
@@ -202,6 +230,9 @@ function updateChannel(){
           v-model="localEvent.label"
           placeholder="Vnesi ime stanja"
         />
+        <div class="d-flex flex-wrap gap-2 mt-1">
+          <div v-for="e in sugestedEvents"> <div class="px-3 cursor-pointer fs-6 text-tight text-sm _badge bg-light" @click="()=> {localEvent.label = e.label}">{{ e.label }} ({{ e.procesLabel }})</div></div>
+        </div>
       </div>
 
        <div class="mb-2">
