@@ -134,7 +134,7 @@ function registerIpcHandlers({ createWindow, windows, restartApp }) {
       const data = fs.readFileSync(filePath, "utf-8");
       const importedGraph = JSON.parse(data);
 
-      updateSystemGraph(importedGraph);
+      systemGraph = importedGraph;
       restartApp({ systemGraph: importedGraph });
 
       return true;
