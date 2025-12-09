@@ -63,6 +63,7 @@ class Matrix {
     this.level = null;
     this.flags = {
       dead_end: false,
+      can_reach_start: 0,
     };
 
     this.data = [];
@@ -192,6 +193,36 @@ class Matrix {
     return null; // not found
   }
 
+  find(id) {
+    if (this.id == id) return this;
+
+    for (let i = 0; i < this.children.length; i++) {
+      const child = this.children[i];
+      if (child instanceof Matrix) {
+        if (child.id == id) return child;
+        const found = child.find(id);
+        if (found !== null) return found;
+      }
+    }
+
+    return null; // not found
+  }
+
+  findPathToStart() {
+    obiskaniM = new Set();
+    if (canReachStart(this)) {
+      this.flags.can_reach_start = true;
+    }
+    for (let i = 0; i < this.children.length; i++) {
+      const child = this.children[i];
+      if (child.type == 0) {
+        child.findPathToStart();
+      }
+    }
+
+    return;
+  }
+
   print() {
     console.log("Matrix:");
     this.data.forEach((row, i) => {
@@ -246,6 +277,34 @@ function triggerProces(p, m) {
 
   // oznaci dead end
   flagDeadEnd(m);
+}
+
+let obiskaniM = new Set();
+
+function canReachStart(m) {
+  if (m.flags.can_reach_start) return true;
+
+  if (obiskaniM.has(m.id)) {
+    return false;
+  }
+  obiskaniM.add(m.id);
+
+  for (let i = 0; i < m.children.length; i++) {
+    const child = m.children[i];
+    if (child.type === 0) {
+      if (child.flags.can_reach_start) {
+        return true;
+      }
+      if (canReachStart(child)) {
+        return true;
+      }
+    } else if (child.type === 2) {
+      if (canReachStart(M.find(child.text))) {
+        return true;
+      }
+    }
+  }
+  return false;
 }
 
 function checkSmrtniObjem(m) {
@@ -641,9 +700,11 @@ function simulate(sg) {
   M.createId();
   M.header = "Začetek";
   M.level = 0;
+  M.flags.can_reach_start = true;
   matrixs.push(M);
 
   matrixRek();
+  M.findPathToStart();
 
   // Izpiši matriko
   let tree = matrixTreeToDot(M);

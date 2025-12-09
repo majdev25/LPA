@@ -230,6 +230,10 @@ function draw(data) {
         cell_color = "#FF0000";
       }
 
+      if (!node.flags.can_reach_start) {
+        cell_color = "#FFA500";
+      }
+
       // outer rectangle
       g.append("rect")
         .attr("x", node.x - rectWidth / 2)
