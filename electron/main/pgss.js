@@ -42,12 +42,7 @@ class MatrixCell {
 
 let MATRIX_ID_COUNTER = 0;
 let MATRIX_RENDER_COUNTER = 0;
-let stats = {
-  generated_matrices: 0,
-  pv: 0,
-  ns: 0,
-  so: 0,
-};
+let stats = {};
 
 class Matrix {
   constructor(rows, type = 0) {
@@ -325,7 +320,7 @@ function checkSmrtniObjem(m) {
   new_m.header = "?";
   new_m.level = m.level + 1;
   m.children.push(new_m);
-  stats.pv += 1;
+  stats.so += 1;
 }
 
 function flagDeadEnd(m) {
@@ -687,6 +682,13 @@ function simulate(sg) {
   matrixs = [];
   MATRIX_ID_COUNTER = 0;
   MATRIX_RENDER_COUNTER = 0;
+
+  stats = {
+    generated_matrices: 0,
+    pv: 0,
+    ns: 0,
+    so: 0,
+  };
 
   // Pripravi začetno matriko
   M = new Matrix(systemGraph.processes.length);

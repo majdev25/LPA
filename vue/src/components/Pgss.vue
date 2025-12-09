@@ -15,6 +15,7 @@ const draw_args = ref({
   tree_type: 0,
   levels_to_draw: -1,
   root_node: 0,
+  point_pv: false,
 });
 
 const tree_types = [
@@ -226,12 +227,12 @@ function draw(data) {
 
       let cell_color = "#333";
 
-      if (node.flags.dead_end) {
-        cell_color = "#FF0000";
-      }
-
       if (!node.flags.can_reach_start) {
         cell_color = "#FFA500";
+      }
+
+      if (node.flags.dead_end) {
+        cell_color = "red";
       }
 
       // outer rectangle
@@ -302,12 +303,26 @@ function draw(data) {
         });
       }
     } else if (node.type === 1) {
+      let color = "#555";
+
+      if (draw_args.value.point_pv && node.text == "PV") {
+        color = "#FFA500";
+      }
+
+      if (draw_args.value.point_ns && node.text == "NS") {
+        color = "#FFA500";
+      }
+
+      if (draw_args.value.point_so && node.text == "SO") {
+        color = "#FFA500";
+      }
+
       const radius = rectHeight / 2;
       g.append("circle")
         .attr("cx", node.x)
         .attr("cy", node.y)
         .attr("r", radius)
-        .attr("fill", "#555")
+        .attr("fill", color)
         .attr("stroke", "#000");
 
       g.append("text")
@@ -465,10 +480,6 @@ onBeforeUnmount(() => {
     style="height: 100vh; width: 100vw; overflow: hidden"
   >
     <!-- Top menu -->
-    <div class="d-flex gap-2">
-      <div>GM: {{ stats?.generated_matrices }}</div>
-      <div>PV: {{ stats?.pv }}</div>
-    </div>
     <div
       class="d-flex border-bottom p-2"
       style="height: fit-content; z-index: 10; flex-shrink: 0"
@@ -502,12 +513,63 @@ onBeforeUnmount(() => {
               placeholder="Vnesi ime stanja"
             />
           </div>
+          <div>
+            <label class="fs-7">Označitve</label>
+            <div class="d-flex flex-wrap flex-column" style="max-height: 40px">
+              <div class="d-flex me-1">
+                <input
+                  type="checkbox"
+                  class="form-check-input me-1 mt-0"
+                  v-model="draw_args.point_pv"
+                />
+                <label class="fs-7">Polna vrsta (PV)</label>
+              </div>
+              <div class="d-flex me-1">
+                <input
+                  type="checkbox"
+                  class="form-check-input me-1 mt-0"
+                  v-model="draw_args.point_ns"
+                />
+                <label class="fs-7">Nedefinirano stanje (NS)</label>
+              </div>
+              <div class="d-flex me-1">
+                <input
+                  type="checkbox"
+                  class="form-check-input me-1 mt-0"
+                  v-model="draw_args.point_so"
+                />
+                <label class="fs-7">Smrtni objem (SO)</label>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
     <div class="d-flex flex-grow-1" style="min-height: 0">
       <div class="flex-grow-1">
         <svg ref="svgRef" style="height: 100%; width: 100%"></svg>
+      </div>
+    </div>
+    <div
+      class="position-absolute bg-white p-2 border rounded"
+      style="bottom: 10px; left: 10px; z-index: 10"
+    >
+      <div class="d-flex gap-2 text-sm">
+        <div class="d-flex gap-1 align-items-center">
+          GM:
+          <span class="badge bg-secondary">{{
+            stats?.generated_matrices
+          }}</span>
+        </div>
+        <div class="d-flex gap-1 align-items-center">
+          PV: <span class="badge bg-secondary">{{ stats?.pv }}</span>
+        </div>
+        <div class="d-flex gap-1 align-items-center">
+          NS: <span class="badge bg-secondary">{{ stats?.ns }}</span>
+        </div>
+        <div class="d-flex gap-1 align-items-center">
+          SO: <span class="badge bg-secondary">{{ stats?.so }}</span>
+        </div>
       </div>
     </div>
   </div>
