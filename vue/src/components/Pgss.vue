@@ -9,6 +9,7 @@ const props = defineProps({
   },
 });
 
+const stats = ref(null);
 const svgRef = ref(null);
 const draw_args = ref({
   tree_type: 0,
@@ -446,6 +447,7 @@ function handleResize() {
 onMounted(() => {
   restart();
   window.addEventListener("resize", handleResize);
+  stats.value = props._pgss_data.pgss.stats;
 });
 
 onBeforeUnmount(() => {
@@ -459,6 +461,10 @@ onBeforeUnmount(() => {
     style="height: 100vh; width: 100vw; overflow: hidden"
   >
     <!-- Top menu -->
+    <div class="d-flex gap-2">
+      <div>GM: {{ stats?.generated_matrices }}</div>
+      <div>PV: {{ stats?.pv }}</div>
+    </div>
     <div
       class="d-flex border-bottom p-2"
       style="height: fit-content; z-index: 10; flex-shrink: 0"

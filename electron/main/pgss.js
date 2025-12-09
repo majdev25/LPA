@@ -1,5 +1,7 @@
 // PGSS
 
+const { stat } = require("original-fs");
+
 // graf sistema
 var systemGraph = null;
 
@@ -40,6 +42,12 @@ class MatrixCell {
 
 let MATRIX_ID_COUNTER = 0;
 let MATRIX_RENDER_COUNTER = 0;
+let stats = {
+  generated_matrices: 0,
+  pv: 0,
+  ns: 0,
+  so: 0,
+};
 
 class Matrix {
   constructor(rows, type = 0) {
@@ -72,6 +80,7 @@ class Matrix {
 
   createId() {
     this.id = MATRIX_ID_COUNTER++;
+    stats.generated_matrices += 1;
   }
 
   // Dodaj otroka
@@ -216,6 +225,8 @@ function matrixRek() {
       for (let p = 0; p < M.rows; p++) {
         triggerProces(p, matrixs[i]);
       }
+      // checkForSmertniObjem
+      checkSmrtniObjem(matrixs[i]);
     }
   }
 }
@@ -237,6 +248,27 @@ function triggerProces(p, m) {
   flagDeadEnd(m);
 }
 
+function checkSmrtniObjem(m) {
+  for (let p = 0; p < m.rows; p++) {
+    if (getOddajniDogodkiZaProcesVStanju(p, m.peek(p, p)).length > 0) return;
+  }
+
+  for (let i = 0; i < m.rows; i++) {
+    for (let j = 0; j < m.rows; j++) {
+      if (i == j) continue;
+      if (m.getLen(i, j) > 0) return;
+    }
+  }
+
+  new_m = new Matrix();
+  new_m.type = 1;
+  new_m.text = "SO";
+  new_m.header = "?";
+  new_m.level = m.level + 1;
+  m.children.push(new_m);
+  stats.pv += 1;
+}
+
 function flagDeadEnd(m) {
   for (let i = 0; i < m.children.length; i++) {
     console.log(m.children[i].type);
@@ -245,6 +277,7 @@ function flagDeadEnd(m) {
       return;
     }
   }
+
   m.flags.dead_end = true;
 }
 
@@ -417,6 +450,7 @@ function simulateOddajniDogodki(p, m) {
       new_m.header = header;
       new_m.level = m.level + 1;
       m.children.push(new_m);
+      stats.pv += 1;
       console.log("PV");
       return;
     }
@@ -537,6 +571,7 @@ function simulateSprejemniDogodki(p, m) {
       new_m.header = header;
       new_m.level = m.level + 1;
       m.children.push(new_m);
+      stats.ns += 1;
     }
   });
 }
@@ -614,7 +649,7 @@ function simulate(sg) {
   let tree = matrixTreeToDot(M);
   console.log(tree);
 
-  return { tree, M, systemGraph };
+  return { tree, M, systemGraph, stats };
 }
 
 function matrixTreeToDot(matrix) {
