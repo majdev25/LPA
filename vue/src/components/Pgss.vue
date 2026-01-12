@@ -95,6 +95,22 @@ function assignHorizontalPositions(levels, rootNode, gap = 150) {
   }
 }
 
+function resetView(svg, node, scale = 1) {
+  if (!zoom || !node) return;
+
+  const svgEl = svgRef.value;
+  const width = svgEl.clientWidth;
+  const height = svgEl.clientHeight;
+
+  const transform = d3.zoomIdentity.translate(
+    width / 2 - node.x,
+    height / 2 - node.y
+  );
+
+  svg.transition().duration(500).call(zoom.transform, transform);
+}
+
+let old_tree_type = null;
 function draw(data) {
   // layout drevesa
   console.log(draw_args.value);
@@ -107,14 +123,13 @@ function draw(data) {
 
   console.log(data);
 
-  if (draw_args.value.tree_type == 0) layoutTree(data);
-  else {
-    const levels = collectNodesByLevel(data);
-    assignHorizontalPositions(levels, data, rectWidth + 40);
+  if (old_tree_type !== draw_args.value.tree_type) {
+    old_tree_type = draw_args.value.tree_type;
+    resetView(d3.select(svgRef.value), data, 1);
   }
 
   // Shift so tree starts at visible area
-  shiftTreeToVisibleArea(data, 50, 50);
+  //shiftTreeToVisibleArea(data, 50, 50);
 
   // izračun SVG dimenzij
   let maxX = 0;

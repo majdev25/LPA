@@ -66,7 +66,18 @@ export class GraphRenderer {
   // =======================
 
   renderChannelName(channel) {
-    return channel.proces1.id + "-" + channel.proces2.id;
+    let label1 = this.graph.processes.find((p) => p.id === channel.proces1.id);
+    let label2 = this.graph.processes.find((p) => p.id === channel.proces2.id);
+    return (
+      label1.label +
+      "(" +
+      channel.proces1.q_length +
+      ") / " +
+      label2.label +
+      "(" +
+      channel.proces2.q_length +
+      ")"
+    );
   }
 
   drawProcesses(defs) {

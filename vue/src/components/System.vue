@@ -386,7 +386,7 @@ onMounted(() => {
           @delete="() => deleteChannel(selectedChannelId)"
         />
         <div v-else class="bg-light p-3 text-gray d-flex gap-2 flex-column">
-          <div>Izberite stanje ali dogodek za prikaz podrobnosti.</div>
+          <div>Izberite proces ali kanal za prikaz podrobnosti.</div>
           <div v-if="mode.addProces">
             <b>Dodaj proces.</b> Z levim klikom na belo polje dodajte nov proces.
           </div>

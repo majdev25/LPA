@@ -303,18 +303,38 @@ function canReachStart(m) {
 }
 
 function checkSmrtniObjem(m) {
+  //preveri omogočene oddajne in lokalne dogodke
   for (let p = 0; p < m.rows; p++) {
-    if (getOddajniDogodkiZaProcesVStanju(p, m.peek(p, p)).length > 0) return;
-  }
-
-  for (let i = 0; i < m.rows; i++) {
-    for (let j = 0; j < m.rows; j++) {
-      if (i == j) continue;
-      if (m.getLen(i, j) > 0) return;
+    const stanje = m.peek(p, p);
+    if (getOddajniDogodkiZaProcesVStanju(p, stanje).length > 0) {
+      return;
+    }
+    if (getLokalniDogodkiZaProcesVStanju(p, stanje).length > 0) {
+      return;
     }
   }
 
-  new_m = new Matrix();
+  //preveri omogočene sprejemne dogodke
+  for (let p = 0; p < m.rows; p++) {
+    const stanje = m.peek(p, p);
+
+    for (let q = 0; q < m.rows; q++) {
+      if (p === q) continue;
+
+      const msg = m.peek(p, q);
+      if (msg == null) continue;
+
+      // ali proces p zna sprejeti to sporočilo iz procesa q
+      const sprejemni = getSprejemniDogodki(p, stanje, getProcesId(q), msg);
+
+      if (sprejemni.length > 0) {
+        return;
+      }
+    }
+  }
+
+  //ni omogočenega dogodka
+  const new_m = new Matrix();
   new_m.type = 1;
   new_m.text = "SO";
   new_m.header = "?";
