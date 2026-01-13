@@ -116,13 +116,26 @@ function globalClick({ x, y }) {
 function addProces(x, y) {
   let id = genProcesId();
   graph.processes.push({
-    id,
-    x,
-    y,
-    r: 15,
-    label: id,
-    procesGraph: {states: [], events: []}
-  });
+  id,
+  x,
+  y,
+  r: 15,
+  label: id,
+  procesGraph: {
+    states: [
+      {
+        id: "s0",
+        x: 50,
+        y: 50,
+        r: 15,
+        label: "s0",
+        isStart: true,
+        parent_proces: id,
+      },
+    ],
+    events: [],
+  },
+});
   selectedProcesId.value = id;
   renderer.render();
       updateGraph();

@@ -187,7 +187,7 @@ function updateIzvorPonor() {
 
   localEvent.from_proces = fromProcessId;
   localEvent.to_proces = toProcessId;
-  
+
   updateChannel();
 }
 
@@ -241,7 +241,7 @@ function updateChannel(){
       <option value="spr">Sprejemni (+)</option>
       <option value="odd">Oddajni (-)</option>
       <option value="lok">Lokalni (#)</option>
-      <option value="tra">Transparentni</option>
+      <!--option value="tra">Transparentni</option-->
     </select>
     </div>
 
