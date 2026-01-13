@@ -101,6 +101,12 @@ class Matrix {
     if (!cell) return console.error("Cell is null");
     if (cell.type === "vrsta") {
       cell.value.push(val); // FIFO: dodaj na konec
+      //najdaljša vrsta (za risanje matrike)
+      const totalCharCount = cell.value.join(", ").length;
+      if (totalCharCount > stats.QUEUE_MAX_LENGTH) {
+        stats.QUEUE_MAX_LENGTH = totalCharCount;
+        stats.QUEUE_MAX_LENGTH_STRING = cell.value.join(", ");
+      }
     } else {
       console.error("Cell type is not 'vrsta'");
     }
@@ -708,6 +714,8 @@ function simulate(sg) {
     pv: 0,
     ns: 0,
     so: 0,
+    QUEUE_MAX_LENGTH: 0,
+    PROCESSES_COUNT: systemGraph.processes.length,
   };
 
   // Pripravi začetno matriko

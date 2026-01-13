@@ -1,12 +1,17 @@
 const path = require("path");
-const { app, BrowserWindow, ipcMain } = require("electron");
+const { app, BrowserWindow, ipcMain, dialog } = require("electron");
 const { registerIpcHandlers } = require("./ipc");
 
 const windows = new Map();
 let root_win_counter = 0;
 
+let forceQuit = false;
+
+let hasUnsavedState = false;
+
 function createWindow(type, data, id) {
-  if (id == "root") {
+  const isRoot = id === "root";
+  if (isRoot) {
     id = id + root_win_counter++;
   }
   if (windows.has(id)) {
@@ -24,13 +29,14 @@ function createWindow(type, data, id) {
   });
 
   windows.set(id, win);
+  win.__isRoot = isRoot;
 
   if (process.env.NODE_ENV === "development") {
     win.loadURL("http://localhost:5173");
     win.webContents.openDevTools();
   } else {
     win.loadFile(path.join(__dirname, "../../vue/dist/index.html"));
-    win.webContents.openDevTools();
+    //win.webContents.openDevTools();
   }
 
   win.webContents.on("did-finish-load", () => {
@@ -39,8 +45,31 @@ function createWindow(type, data, id) {
     win.webContents.send("win-data", data);
   });
 
-  win.on("closed", () => {
-    windows.delete(id);
+  win.on("close", (event) => {
+    if (!win.__isRoot || forceQuit) return;
+
+    if (!hasUnsavedState) {
+      forceQuit = true;
+      return;
+    }
+
+    const choice = dialog.showMessageBoxSync(win, {
+      type: "question",
+      buttons: ["Prekliči", "Nadaljuj"],
+      defaultId: 0,
+      cancelId: 0,
+      title: "Ali ste prepričani, da želite nadaljevati?",
+      message:
+        "Trenutno stanje bo izgubljeno. Prepričajte se, da ste shranili svoje delo.",
+    });
+
+    if (choice === 0) {
+      event.preventDefault();
+      return;
+    }
+
+    // uporabnik je potrdil → dovoli zapiranje okna
+    forceQuit = true;
   });
 }
 
@@ -57,7 +86,7 @@ app.whenReady().then(() => {
     "root"
   );
 
-  const dep = { createWindow, windows, restartApp };
+  const dep = { createWindow, windows, restartApp, setUnsavedState };
   registerIpcHandlers(dep); // register IPC once app is ready
 });
 
@@ -72,6 +101,7 @@ function restartApp(systemGraph) {
 
   console.log(windows);
 
+  forceQuit = false;
   createWindow(
     "system",
     {
@@ -82,11 +112,24 @@ function restartApp(systemGraph) {
 }
 
 app.on("window-all-closed", () => {
-  if (process.platform !== "darwin") app.quit();
+  // zdaj res zapri aplikacijo (tudi na macOS)
+  app.quit();
 });
 
 app.on("activate", () => {
-  if (BrowserWindow.getAllWindows().length === 0) createWindow();
+  if (windows.size === 0) {
+    root_win_counter = 0; // optional but recommended
+    createWindow(
+      "system",
+      {
+        systemGraph: {
+          processes: [],
+          channels: [],
+        },
+      },
+      "root"
+    );
+  }
 });
 
 function focusWindow(id) {
@@ -101,4 +144,8 @@ function focusWindow(id) {
   } else {
     windows.delete(id);
   }
+}
+
+function setUnsavedState(state = true) {
+  hasUnsavedState = state;
 }

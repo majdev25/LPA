@@ -34,8 +34,8 @@ watch(
 // nastavitve kvadratov in razmikov
 let rectWidth = 100;
 let rectHeight = 50;
-const verticalSpacing = 80;
-const horizontalSpacing = 20;
+let verticalSpacing = 80;
+let horizontalSpacing = 20;
 
 let zoom, g;
 
@@ -142,6 +142,8 @@ function draw(data) {
   findMax(data);
 
   const svg = d3.select(svgRef.value);
+
+  const currentTransform = d3.zoomTransform(svgRef.value);
   svg.selectAll("*").remove();
 
   svg
@@ -159,12 +161,8 @@ function draw(data) {
 
   g = svg.append("g");
 
-  // Zoom/pan
-  zoom = d3
-    .zoom()
-    .scaleExtent([0.05, 100])
-    .on("zoom", (event) => g.attr("transform", event.transform));
-  svg.call(zoom);
+  // 3️⃣ restore zoom state
+  g.attr("transform", currentTransform);
 
   // Draw lines first
   function drawLinks(node) {
@@ -200,20 +198,22 @@ function draw(data) {
       const headerPaddingY = 4;
       const headerPadding = 20;
 
-      // temporary text element to measure size
+      // Final Y position for header text (BASELINE-based)
+      const headerY = node.y - rectHeight / 2 - headerPadding;
+
+      // --- measure text (baseline positioning) ---
       const tempText = g
         .append("text")
         .attr("x", node.x)
-        .attr("y", node.y - rectHeight / 2 - headerPadding)
+        .attr("y", headerY)
         .attr("text-anchor", "middle")
-        .attr("font-weight", "regular")
         .attr("font-size", "12px")
         .text(node.header);
 
-      const bbox = tempText.node().getBBox(); // get size of text
-      tempText.remove(); // remove temporary text
+      const bbox = tempText.node().getBBox();
+      tempText.remove();
 
-      // background rect
+      // --- background rect ---
       g.append("rect")
         .attr("x", bbox.x - headerPaddingX)
         .attr("y", bbox.y - headerPaddingY)
@@ -221,24 +221,26 @@ function draw(data) {
         .attr("height", bbox.height + 2 * headerPaddingY)
         .attr("fill", "white")
         .attr("stroke", "#333")
-        .attr("rx", 4) // optional rounded corners
+        .attr("rx", 4)
         .attr("ry", 4);
 
-      // actual text on top
+      // --- final text (EXACT same positioning as measurement) ---
       g.append("text")
         .attr("x", node.x)
-        .attr("y", node.y - rectHeight / 2 - headerPadding)
+        .attr("y", headerY)
         .attr("text-anchor", "middle")
-        .attr("fill", "black")
-        .attr("font-weight", "regular")
         .attr("font-size", "12px")
+        .attr("fill", "black")
         .text(node.header);
     }
 
     if (node.type === 0) {
       // type 0: matrix in rectangle
-      const cellWidth = rectWidth / (node.data[0]?.length || 1);
-      const cellHeight = rectHeight / (node.data?.length || 1);
+      const cols = node.data[0]?.length || 1;
+      const rows = node.data?.length || 1;
+
+      const cellWidth = rectWidth / cols;
+      const cellHeight = rectHeight / rows;
 
       let cell_color = "#333";
 
@@ -318,6 +320,8 @@ function draw(data) {
         });
       }
     } else if (node.type === 1) {
+      let rectHeight2 = 50;
+
       let color = "#555";
 
       if (draw_args.value.point_pv && node.text == "PV") {
@@ -332,7 +336,7 @@ function draw(data) {
         color = "#FFA500";
       }
 
-      const radius = rectHeight / 2;
+      const radius = rectHeight2 / 2;
       g.append("circle")
         .attr("cx", node.x)
         .attr("cy", node.y)
@@ -348,7 +352,10 @@ function draw(data) {
         .attr("fill", "white")
         .text(node.text || node.header || `Node ${node.id ?? "?"}`);
     } else if (node.type === 2) {
-      const size = Math.max(rectWidth / 2, rectHeight / 2);
+      let rectHeight2 = 100;
+      let rectWidth2 = 100;
+
+      const size = Math.max(rectWidth2 / 2, rectHeight2 / 2);
       g.append("rect")
         .attr("x", node.x - size / 2)
         .attr("y", node.y - size / 2)
@@ -397,23 +404,59 @@ function shiftTreeToVisibleArea(node, offsetX = 50, offsetY = 50) {
 function restart() {
   if (!props._pgss_data || !props._pgss_data.pgss?.M) return;
 
-  let pgss_data;
+  const pgss_copy = JSON.parse(JSON.stringify(props._pgss_data.pgss));
 
-  console.log(props._pgss_data);
-  let pgss_copy = JSON.parse(JSON.stringify(props._pgss_data.pgss));
+  // ---- measure queue text ----
+  const maxQueueText = pgss_copy.stats.QUEUE_MAX_LENGTH_STRING || "";
+  const queueTextWidth = measureTextWidth(maxQueueText, "10px sans-serif");
 
-  rectWidth = 50 * pgss_copy.systemGraph.processes.length;
-  rectHeight = 25 * pgss_copy.systemGraph.processes.length;
+  // ---- measure state labels ----
+  const maxStateLabel = findMaxStateLabel(pgss_copy.systemGraph);
+  const stateTextWidth = measureTextWidth(maxStateLabel, "10px sans-serif");
 
-  let data = null;
+  // ---- cell width must fit BOTH ----
+  const cellPadding = 16;
+  const cellWidth = Math.max(queueTextWidth, stateTextWidth) + cellPadding;
 
-  if (draw_args.value.root_node == 0) {
-    data = pgss_copy.M;
-  } else {
-    data = findNodeById(pgss_copy.M, draw_args.value.root_node) || pgss_copy.M;
-  }
+  const cols = pgss_copy.stats.PROCESSES_COUNT;
+
+  rectWidth = Math.max(cols * cellWidth, 130);
+  rectHeight = 10 * cols + 40;
+
+  verticalSpacing = 50;
+  horizontalSpacing = 40;
+
+  const data =
+    draw_args.value.root_node === 0
+      ? pgss_copy.M
+      : findNodeById(pgss_copy.M, draw_args.value.root_node) || pgss_copy.M;
 
   draw(data);
+}
+
+function measureTextWidth(text, font = "12px sans-serif") {
+  const canvas =
+    measureTextWidth._canvas ||
+    (measureTextWidth._canvas = document.createElement("canvas"));
+
+  const ctx = canvas.getContext("2d");
+  ctx.font = font;
+
+  return ctx.measureText(text).width;
+}
+
+function findMaxStateLabel(systemGraph) {
+  let maxLabel = "";
+
+  systemGraph.processes.forEach((process) => {
+    process.procesGraph.states.forEach((state) => {
+      if (state.label.length > maxLabel.length) {
+        maxLabel = state.label;
+      }
+    });
+  });
+
+  return maxLabel;
 }
 
 function centerRoot(svg, root) {
@@ -477,11 +520,21 @@ function handleResize() {
   // Otherwise, just shift the g group
   centerRoot(d3.select(svgRef.value), data);
 }
-
 onMounted(() => {
+  const svg = d3.select(svgRef.value);
+
+  zoom = d3
+    .zoom()
+    .scaleExtent([0.05, 100])
+    .on("zoom", (event) => {
+      g.attr("transform", event.transform);
+    });
+
+  svg.call(zoom);
   restart();
   window.addEventListener("resize", handleResize);
   stats.value = props._pgss_data.pgss.stats;
+  console.log(props._pgss_data.pgss.stats);
 });
 
 onBeforeUnmount(() => {

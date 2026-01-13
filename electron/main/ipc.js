@@ -5,7 +5,12 @@ const { simulate } = require("./pgss.js");
 
 var systemGraph = {};
 
-function registerIpcHandlers({ createWindow, windows, restartApp }) {
+function registerIpcHandlers({
+  createWindow,
+  windows,
+  restartApp,
+  setUnsavedState,
+}) {
   function updateWindowsData() {
     windows.forEach((win, id) => {
       win.webContents.send("win-data", { systemGraph });
@@ -74,6 +79,7 @@ function registerIpcHandlers({ createWindow, windows, restartApp }) {
   ipcMain.handle("update-system", async (event, { graph }) => {
     try {
       updateSystemGraph(JSON.parse(graph));
+      setUnsavedState(true);
       return true;
     } catch (err) {
       console.error("[update-system] Error updating system graph:", err);
@@ -85,6 +91,7 @@ function registerIpcHandlers({ createWindow, windows, restartApp }) {
     try {
       const { procesGraph, id, _updateId } = JSON.parse(data);
       updateProcesGraph(procesGraph, id, _updateId);
+      setUnsavedState(true);
       return true;
     } catch (err) {
       console.error("[update-system] Error updating system graph:", err);
@@ -108,6 +115,7 @@ function registerIpcHandlers({ createWindow, windows, restartApp }) {
       // Save the object as JSON
       fs.writeFileSync(filePath, JSON.stringify(systemGraph, null, 2), "utf-8");
 
+      setUnsavedState(false);
       return true; // success
     } catch (err) {
       console.error("[save-systemGraph] Error saving system graph:", err);
