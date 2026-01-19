@@ -26,9 +26,9 @@ const localChannel = reactive(clone(props.channel));
 watch(
   () => props.channel,
   (newChannel) => {
-    Object.assign(localChannel, newChannel);
+    Object.assign(localChannel, clone(newChannel));
   },
-  { deep: true }
+  { deep: true, immediate: true }
 );
 
 watch(

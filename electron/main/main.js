@@ -71,6 +71,11 @@ function createWindow(type, data, id) {
     // uporabnik je potrdil → dovoli zapiranje okna
     forceQuit = true;
   });
+
+  win.on("closed", () => {
+    windows.delete(id);
+    console.log("window closed:", id);
+  });
 }
 
 // App lifecycle
@@ -83,7 +88,7 @@ app.whenReady().then(() => {
         channels: [],
       },
     },
-    "root"
+    "root",
   );
 
   const dep = { createWindow, windows, restartApp, setUnsavedState };
@@ -107,7 +112,7 @@ function restartApp(systemGraph) {
     {
       systemGraph: systemGraph.systemGraph,
     },
-    "root"
+    "root",
   );
 }
 
@@ -127,7 +132,7 @@ app.on("activate", () => {
           channels: [],
         },
       },
-      "root"
+      "root",
     );
   }
 });
