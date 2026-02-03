@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/logo.png" alt="Logo aplikacije" width="80">
+</p>
+
 # Orodje za analizo komunikacijskih protokolov
 
 ![Electron](https://img.shields.io/badge/Electron-47848F?logo=electron&logoColor=white)
