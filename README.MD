@@ -12,7 +12,16 @@ Namizna aplikacija, razvita v okviru diplomskega dela
 Aplikacija je zgrajena z uporabo ogrodja **Electron** in omogoča formalno
 modeliranje ter analizo komunikacijskih protokolov po metodi PGSS.
 
+## Prenos
+
 👉 [Prenesi macOS (.dmg)](https://github.com/majdev25/LPA/releases/download/1.0/LPA-1.0.0-arm64.dmg)
+
+Aplikacija ni podpisana z Apple Developer certifikatom.
+Ob prvem zagonu je potrebno odstraniti karanteno:
+
+```bash
+xattr -rd com.apple.quarantine /Applications/LPA.app
+```
 
 ## Zahteve
 
